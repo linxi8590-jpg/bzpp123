@@ -2,8 +2,19 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>八字排盘小工具 v11.11a（黄历 / 神煞）</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <!-- v11.12b: iOS 主屏幕“类 App”模式支持 -->
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="八字工具" />
+<meta name="theme-color" content="#0f1115" />
+
+<!-- 主屏幕图标（你上传同名 PNG 即可生效） -->
+<link rel="apple-touch-icon" sizes="180x180" href="icon-180.png" />
+<link rel="icon" sizes="192x192" href="icon-192.png" />
+<link rel="icon" sizes="512x512" href="icon-512.png" />
+
+  <title>八字排盘小工具 v11.12b（黄历 / 神煞）</title>
 
   <script src="https://cdn.jsdelivr.net/npm/lunar-javascript/lunar.js"></script>
 
@@ -882,7 +893,7 @@
   line-height: 1.45;
 }
 
-/* v11.11a: 详情卡片跳转学习表按钮（安全追加） */
+/* v11.12b: 详情卡片跳转学习表按钮（安全追加） */
 .ss-detail-actions{
   display:flex;
   gap: 8px;
@@ -907,7 +918,7 @@
   transition: box-shadow .2s ease, outline .2s ease;
 }
 
-/* v11.11a: 学习表 → 一键试盘 */
+/* v11.12b: 学习表 → 一键试盘 */
 .ss-learn-to-pan{
   margin-left: auto;
   padding: 3px 8px;
@@ -935,7 +946,7 @@
 </head>
 <body>
   <div class="container">
-    <h1 class="title">🔮 八字排盘小工具 v11.11a</h1>
+    <h1 class="title">🔮 八字排盘小工具 v11.12b</h1>
     <p class="subtitle">
       在 v5 的基础上新增：<b>黄历/万年历</b> 与 <b>神煞学习页</b>；排盘页增加“神煞（试行版）”。<br/>
       神煞自动判定已扩展为<strong>“地支组合法 + 部分干支/日柱规则”</strong>：桃花 / 驿马 / 华盖 / 将星，以及文昌、天乙、国印、太极、禄神、羊刃、飞刃、血刃、红鸾、天喜、六合、魁罡、十恶大败、孤鸾、阴阳差错等。未覆盖者仍保留学习表，后续可继续补齐。<br/>
@@ -3735,7 +3746,7 @@ if(childResults && childResults.length){
     const min = Number(els.minuteRange.value || 0);
     const isLeap = !!els.leapToggle.checked;
 
-    // v11.11a: 农历模式下在年份显示干支
+    // v11.12b: 农历模式下在年份显示干支
 if(currentMode === MODE.LUNAR){
   let ygz = '';
   try{
@@ -4269,7 +4280,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 
-// v11.11a: 从排盘详情卡片一键跳转到学习表原文（安全追加，不改原函数体）
+// v11.12b: 从排盘详情卡片一键跳转到学习表原文（安全追加，不改原函数体）
 function jumpToShenShaLearningSafe(name){
   try{ closeSsDetailSafe && closeSsDetailSafe(); }catch(e){}
 
@@ -4359,7 +4370,7 @@ function injectLearningLinkIntoDetail(meta){
 })();
 
 
-// v11.11a: 学习表 → 排盘页 轻量联动（安全追加）
+// v11.12b: 学习表 → 排盘页 轻量联动（安全追加）
 function injectLearnToPanButtons(){
   try{
     const items = document.querySelectorAll('.ss-item');
