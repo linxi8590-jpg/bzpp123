@@ -33,16 +33,69 @@
     </p>
 
     <div class="tabs">
-      <div class="tab-btn active" id="tabBazi">排盘</div>
+      <div class="tab-btn active" id="tabHome">总览</div>
+      <div class="tab-btn" id="tabBazi">排盘</div>
       <div class="tab-btn" id="tabJieqi">节气</div>
       <div class="tab-btn" id="tabLuck">运势</div>
       <div class="tab-btn" id="tabAlmanac">黄历</div>
       <div class="tab-btn" id="tabShenSha">神煞</div>
       <div class="tab-btn" id="tabName">起名</div>
+      <div class="tab-spacer"></div>
+      <button class="tab-action-btn" id="navBackHome" title="返回总览">返回</button>
+      <button class="tab-action-btn" id="navToggleTabs" title="收起/展开导航">关闭</button>
+    </div>
+
+
+    <!-- 总览面板 -->
+    <div class="panel active" id="panelHome">
+      <div class="home-hero">
+        <div class="home-hero-title">你的八字工具工作台</div>
+        <div class="home-hero-sub">功能已齐，接下来让秩序和颜值一起上桌。</div>
+      </div>
+
+      <div class="home-groups">
+        <div class="home-group-card">
+          <div class="home-group-kicker">核心</div>
+          <div class="home-group-title">排盘与运势</div>
+          <div class="home-group-actions">
+            <button class="home-link" data-tab="bazi">八字排盘</button>
+            <button class="home-link" data-tab="luck">运势</button>
+          </div>
+        </div>
+
+        <div class="home-group-card">
+          <div class="home-group-kicker">工具</div>
+          <div class="home-group-title">时序与日用</div>
+          <div class="home-group-actions">
+            <button class="home-link" data-tab="jieqi">节气</button>
+            <button class="home-link" data-tab="almanac">黄历</button>
+          </div>
+        </div>
+
+        <div class="home-group-card">
+          <div class="home-group-kicker">学习</div>
+          <div class="home-group-title">神煞资料库</div>
+          <div class="home-group-actions">
+            <button class="home-link" data-tab="shensha">神煞</button>
+          </div>
+        </div>
+
+        <div class="home-group-card">
+          <div class="home-group-kicker">启明</div>
+          <div class="home-group-title">起名探索（简易版）</div>
+          <div class="home-group-actions">
+            <button class="home-link" data-tab="name">进入起名</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="home-tip">
+        <span>提示：</span>你可以把这里当“菜单页”。以后新增模块，只要在这里加一个入口按钮即可。
+      </div>
     </div>
 
     <!-- 排盘面板 -->
-    <div class="panel active" id="panelBazi">
+    <div class="panel" id="panelBazi">
       <div class="picker">
         <div class="mode-row">
           <div class="mode-pill active" id="solarModeBtn">公历输入</div>
@@ -343,10 +396,6 @@
         <div class="ss-list" id="ssList"></div>
       </div>
     </div>
-  </div>
-
-  <div class="toast" id="toast"></div>
-
 
     <!-- 起名/测名 -->
     <div class="panel" id="panelName">
@@ -436,6 +485,9 @@
         </div>
       </div>
     </div>
+
+    <div class="toast" id="toast"></div>
+  </div>
 
   <script src="./app.js"></script>
   <script>

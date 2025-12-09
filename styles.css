@@ -37,7 +37,7 @@
 
     .container{
       width: 100%;
-      max-width: 680px;
+      max-width: 860px;
       background: linear-gradient(180deg, var(--panel), var(--panel-2));
       border: 1px solid rgba(255,255,255,.04);
       border-radius: var(--radius-xl);
@@ -65,12 +65,16 @@
 
     /* ===== Tabs ===== */
     .tabs{
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr;
+      display: flex;
       gap: 8px;
       margin-bottom: 10px;
+      overflow-x: auto;
+      padding-bottom: 2px;
+      scrollbar-width: none;
     }
+    .tabs::-webkit-scrollbar{ display: none; }
     .tab-btn{
+      flex: 0 0 auto;
       padding: 10px 10px;
       border-radius: 999px;
       background: rgba(255,255,255,.05);
@@ -986,3 +990,114 @@
         grid-template-columns: repeat(2, 1fr);
       }
     }
+
+
+/* ===================== v11.13a UI 分组导航补丁 ===================== */
+.tab-spacer{
+  flex: 1 1 auto;
+}
+
+.tab-action-btn{
+  flex: 0 0 auto;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,.08);
+  background: rgba(255,255,255,.03);
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  transition: filter .12s ease, transform .12s ease, border-color .12s ease;
+}
+.tab-action-btn:hover{
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+  border-color: rgba(214,174,102,.35);
+  color: #fff;
+}
+
+/* 仅收起“入口按钮”，保留关闭/返回按钮 */
+body.tabs-collapsed .tabs .tab-btn,
+body.tabs-collapsed .tabs .tab-spacer{
+  display: none;
+}
+body.tabs-collapsed .tabs{
+  justify-content: flex-end;
+}
+
+/* 总览面板 */
+.home-hero{
+  padding: 14px 14px 8px;
+  border-radius: 14px;
+  background:
+    radial-gradient(320px 120px at 10% 0%, rgba(214,174,102,.12), transparent 60%),
+    linear-gradient(135deg, rgba(255,255,255,.04), transparent 40%);
+  border: 1px solid rgba(255,255,255,.06);
+  margin-bottom: 14px;
+}
+.home-hero-title{
+  font-size: 22px;
+  letter-spacing: .5px;
+}
+.home-hero-sub{
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.home-groups{
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0,1fr));
+  gap: 12px;
+}
+@media (max-width: 720px){
+  .home-groups{ grid-template-columns: 1fr; }
+}
+
+.home-group-card{
+  padding: 14px 14px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,.06);
+  background:
+    linear-gradient(135deg, rgba(255,255,255,.035), transparent 45%),
+    linear-gradient(180deg, rgba(255,255,255,.02), transparent 35%);
+}
+.home-group-kicker{
+  font-size: 10px;
+  color: rgba(214,174,102,.9);
+  letter-spacing: 1.2px;
+}
+.home-group-title{
+  margin-top: 4px;
+  font-size: 15px;
+}
+.home-group-actions{
+  margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.home-link{
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,.08);
+  background: rgba(255,255,255,.03);
+  color: #fff;
+  font-size: 12px;
+  cursor: pointer;
+  transition: filter .12s ease, transform .12s ease, border-color .12s ease;
+}
+.home-link:hover{
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+  border-color: rgba(214,174,102,.35);
+}
+
+.home-tip{
+  margin-top: 14px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px dashed rgba(255,255,255,.08);
+  color: var(--muted);
+  font-size: 11px;
+}

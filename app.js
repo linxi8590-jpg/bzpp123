@@ -1,5 +1,6 @@
 /* ===================== 基础引用 ===================== */
   const els = {
+    tabHome: document.getElementById('tabHome'),
     tabBazi: document.getElementById('tabBazi'),
     tabJieqi: document.getElementById('tabJieqi'),
     tabLuck: document.getElementById('tabLuck'),
@@ -7,6 +8,7 @@
     tabShenSha: document.getElementById('tabShenSha'),
     tabName: document.getElementById('tabName'),
 
+    panelHome: document.getElementById('panelHome'),
     panelBazi: document.getElementById('panelBazi'),
     panelJieqi: document.getElementById('panelJieqi'),
     panelLuck: document.getElementById('panelLuck'),
@@ -2600,6 +2602,7 @@ const timeStr = els.minuteToggle.checked ? `${pad2(h)}:${pad2(min)}` : `${pad2(h
   function switchTab(which){
     if(which === 'name' && typeof setupNameModule === 'function'){ setupNameModule(); }
     const map = {
+      home: [els.tabHome, els.panelHome],
       bazi: [els.tabBazi, els.panelBazi],
       jieqi: [els.tabJieqi, els.panelJieqi],
       luck: [els.tabLuck, els.panelLuck],
@@ -2789,12 +2792,34 @@ function initMissingChildGuanShaList(){
     }
 
     /* Tabs */
+    if(els.tabHome) els.tabHome.addEventListener('click', () => switchTab('home'));
     els.tabBazi.addEventListener('click', () => switchTab('bazi'));
     els.tabJieqi.addEventListener('click', () => switchTab('jieqi'));
     els.tabLuck.addEventListener('click', () => switchTab('luck'));
     els.tabAlmanac.addEventListener('click', () => switchTab('almanac'));
     els.tabShenSha.addEventListener('click', () => switchTab('shensha'));
     els.tabName.addEventListener('click', () => switchTab('name'));
+
+    // 总览快捷入口按钮
+    document.querySelectorAll('.home-link').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const t = btn.getAttribute('data-tab');
+        if(t) switchTab(t);
+      });
+    });
+
+    // 顶部返回/关闭导航
+    const navBackHome = document.getElementById('navBackHome');
+    const navToggleTabs = document.getElementById('navToggleTabs');
+    if(navBackHome){
+      navBackHome.addEventListener('click', ()=> switchTab('home'));
+    }
+    if(navToggleTabs){
+      navToggleTabs.addEventListener('click', ()=>{
+        document.body.classList.toggle('tabs-collapsed');
+        navToggleTabs.textContent = document.body.classList.contains('tabs-collapsed') ? '展开' : '关闭';
+      });
+    }
 
 
     /* 起名模块 */
@@ -3357,7 +3382,7 @@ function showPanFocusHint(name, method){
 function jumpToPanFromLearning(name, method){
   try{
     if(typeof switchTab === 'function'){
-      switchTab('bazi');
+      switchTab('home');
     }
   }catch(e){}
   setTimeout(()=> showPanFocusHint(name, method), 60);
