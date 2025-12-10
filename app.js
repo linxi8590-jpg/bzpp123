@@ -2385,6 +2385,7 @@ if(childResults && childResults.length){
   ];
 
   let ssFilter = 'all';
+  let ssListExpanded = false;
 
   function ssLuckClass(luck){
     if(!luck) return 'neutral';
@@ -2457,7 +2458,46 @@ if(childResults && childResults.length){
     renderShenShaList._lastCopy = data.map(x =>
       `${x.name}【${x.group}｜${x.luck || '—'}】\n查法：${x.method || '—'}\n作用：${x.effect || '—'}\n${x.note ? '备注：'+x.note : ''}`
     ).join('\n\n');
+    renderShenShaList._renderedOnce = true;
   }
+
+  function updateSsListVisibility(){
+    if(!els.ssList) return;
+    const btn = els.ssToggleBtn;
+    if(ssListExpanded){
+      els.ssList.classList.remove('ss-collapsed');
+      if(btn) btn.textContent = '收起列表';
+    }else{
+      els.ssList.classList.add('ss-collapsed');
+      if(btn) btn.textContent = '展开列表';
+    }
+  }
+
+  function ensureSsToggleSetup(){
+    if(ensureSsToggleSetup._bound) return;
+    ensureSsToggleSetup._bound = true;
+    const panel = els.panelShenSha;
+    const actions = els.ssCopyListBtn ? els.ssCopyListBtn.parentElement : null;
+    if(!panel || !actions) return;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'btn secondary';
+    btn.id = 'ssToggleBtn';
+    btn.textContent = '展开列表';
+    els.ssToggleBtn = btn;
+    actions.insertBefore(btn, actions.firstChild);
+    btn.addEventListener('click', ()=>{
+      ssListExpanded = !ssListExpanded;
+      if(ssListExpanded && !renderShenShaList._renderedOnce){
+        renderShenShaList();
+      }
+      updateSsListVisibility();
+    });
+    // 默认收起
+    ssListExpanded = false;
+    updateSsListVisibility();
+  }
+
 
   async function copyShenShaList(){
     const text = renderShenShaList._lastCopy || '';
@@ -3207,6 +3247,10 @@ setupNameModule();
     syncValueText();
     renderAlmanac();
     renderShenShaList();
+    ensureSsToggleSetup();
+    // 默认保持学习列表收起，避免跨模块干扰
+    ssListExpanded = false;
+    updateSsListVisibility();
     try{ initMissingShenshaList(); }catch(e){}
     try{ initMissingChildGuanShaList(); }catch(e){}
   }
@@ -3400,6 +3444,13 @@ function jumpToShenShaLearningSafe(name){
     }
   }catch(e){}
 
+  // 从详情页跳转时，自动展开学习列表并高亮定位
+  try{
+    ensureSsToggleSetup();
+    ssListExpanded = true;
+    updateSsListVisibility();
+  }catch(e){}
+
   if(!name) return;
 
   // 等列表渲染后用文本匹配定位
@@ -3546,7 +3597,33 @@ function jumpToPanFromLearning(name, method){
   setTimeout(()=> showPanFocusHint(name, method), 60);
 }
 
-// 包裹 renderShenShaList：渲染后注入按钮
+/
+
+function resetShenShaViewState(){
+  try{
+    ssFilter = 'all';
+    if(els.ssSearch) els.ssSearch.value = '';
+    if(els.ssFilterAll){
+      els.ssFilterAll.classList.add('active');
+    }
+    if(els.ssFilterCommon){
+      els.ssFilterCommon.classList.remove('active');
+    }
+    if(els.ssFilterChild){
+      els.ssFilterChild.classList.remove('active');
+    }
+    if(els.ssRuleExplain){
+      els.ssRuleExplain.style.display = 'none';
+    }
+    try{
+      ensureSsToggleSetup();
+      ssListExpanded = false;
+      updateSsListVisibility();
+    }catch(e){}
+  }catch(e){}
+}
+
+/ 包裹 renderShenShaList：渲染后注入按钮
 (function(){
   try{
     if(typeof renderShenShaList === 'function' && !renderShenShaList.__patched_v119a){
@@ -3661,6 +3738,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function showGroup(key) {
     lastGroup = key || lastGroup || "home";
+
+    // 离开“学习”分组时重置神煞学习视图，避免跨模块干扰滚动与展开状态
+    if (key !== 'study') {
+      try { resetShenShaViewState(); } catch (e) {}
+    }
+
     document.body.classList.remove("module-open");
     setBottomActive(lastGroup);
     setGroupActive(lastGroup);
@@ -3711,7 +3794,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   
-  const UI_VERSION = "v12.2-2025-12-10-03";
+  const UI_VERSION = "v12.2-2025-12-10-07";
 
   function initMeTools() {
     const uiEl = qs("#uiVersion");

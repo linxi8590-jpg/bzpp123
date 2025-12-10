@@ -632,6 +632,19 @@
       display: grid;
       gap: 8px;
     }
+
+    .ss-list.ss-collapsed .ss-item{
+      display: none;
+    }
+    .ss-list.ss-collapsed::before{
+      content: '神煞学习列表已收起，可点击“展开列表”查看全部条目。';
+      display: block;
+      padding: 10px 8px 12px;
+      font-size: 12px;
+      line-height: 1.5;
+      color: var(--muted);
+      white-space: pre-line;
+    }
     .ss-item{
       padding: 11px 11px 10px;
       border-radius: 12px;
@@ -1023,6 +1036,9 @@ body.group-ui .panel{
   border-radius: var(--radius-md, 12px);
   background: linear-gradient(135deg, rgba(255,255,255,.04), rgba(255,255,255,.01));
   border: 1px solid rgba(255,255,255,.06);
+  position: sticky;
+  top: 0;
+  z-index: 900;
 }
 
 .module-topbar .topbar-title{
