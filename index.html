@@ -87,8 +87,38 @@
       <!-- 我的 -->
       <div class="group-view" id="groupMe">
         <div class="group-kicker">我的</div>
-        <div class="empty-state">
-          <div class="empty-title">这里先空着</div>
+        
+        <div class="me-cards">
+          <div class="card me-card">
+            <div class="section-title">版本信息</div>
+            <div class="me-kv">
+              <div class="me-kv-row">
+                <span class="me-k">UI 版本</span>
+                <span class="me-v mono" id="uiVersion">-</span>
+              </div>
+              <div class="me-kv-row">
+                <span class="me-k">缓存版本</span>
+                <span class="me-v mono" id="cacheVersion">-</span>
+              </div>
+              <div class="me-kv-row">
+                <span class="me-k">构建标记</span>
+                <span class="me-v mono" id="buildTime">-</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="card me-card">
+            <div class="section-title">维护工具</div>
+            <div class="me-actions">
+              <button class="btn secondary" id="btnSoftReload" type="button">仅刷新页面</button>
+              <button class="btn" id="btnHardRefresh" type="button">清理缓存并刷新</button>
+            </div>
+            <div class="hint small-hint">
+              iOS 若出现页面不更新，可优先使用“清理缓存并刷新”。该操作仅清理本工具缓存，不影响其他网站。
+            </div>
+          </div>
+        </div>
+
           <div class="empty-desc">后续可以放：主题、收藏、数据导入导出、个性设置等。</div>
         </div>
       </div>

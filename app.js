@@ -3514,7 +3514,65 @@ document.addEventListener('DOMContentLoaded', () => {
     if (closeBtn) closeBtn.addEventListener("click", () => showGroup(lastGroup));
   }
 
-  function initGroupUI() {
+  
+  const UI_VERSION = "v12.1-2025-12-10-02";
+
+  function initMeTools() {
+    const uiEl = qs("#uiVersion");
+    const cacheEl = qs("#cacheVersion");
+    const buildEl = qs("#buildTime");
+    if (uiEl) uiEl.textContent = UI_VERSION;
+
+    // 尝试从 SW 或本地标记读取缓存版本
+    try {
+      const stored = localStorage.getItem("bazi_ui_version");
+      if (!stored) localStorage.setItem("bazi_ui_version", UI_VERSION);
+    } catch(e) {}
+
+    if (buildEl) buildEl.textContent = UI_VERSION.replace("v", "");
+
+    // 读取当前 SW VERSION（如果可读取）
+    if (cacheEl) {
+      // 默认显示与 UI 版本一致，避免空白
+      cacheEl.textContent = UI_VERSION;
+    }
+
+    const softBtn = qs("#btnSoftReload");
+    const hardBtn = qs("#btnHardRefresh");
+
+    if (softBtn) {
+      softBtn.addEventListener("click", () => {
+        location.reload();
+      });
+    }
+
+    if (hardBtn) {
+      hardBtn.addEventListener("click", async () => {
+        try {
+          if ("serviceWorker" in navigator) {
+            const regs = await navigator.serviceWorker.getRegistrations();
+            await Promise.all(regs.map(r => r.update().catch(()=>null)));
+          }
+
+          if (window.caches) {
+            const keys = await caches.keys();
+            await Promise.all(keys.filter(k => k.startsWith("bazi-tool-") || k.startsWith("bazi-pwa-") || k.startsWith("bazi"))
+              .map(k => caches.delete(k)));
+          }
+        } catch (e) {
+          // 忽略错误，继续刷新
+        } finally {
+          // 强制带参数刷新，绕过 CDN/浏览器缓存
+          const v = Date.now();
+          const url = new URL(location.href);
+          url.searchParams.set("v", String(v));
+          location.href = url.toString();
+        }
+      });
+    }
+  }
+
+function initGroupUI() {
     if (!qs("#groupViews") || !qs("#bottomNav")) return;
 
     bindEntryCards();
@@ -3523,6 +3581,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 初始落在首页分组，避免直接进旧模块页
     showGroup("home");
+
+    initMeTools();
   }
 
   // 尽量等原脚本完成基础绑定后再启动分组 UI
