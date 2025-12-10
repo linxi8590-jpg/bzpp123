@@ -3597,7 +3597,6 @@ function jumpToPanFromLearning(name, method){
   setTimeout(()=> showPanFocusHint(name, method), 60);
 }
 
-/
 
 function resetShenShaViewState(){
   try{
