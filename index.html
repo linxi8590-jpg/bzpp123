@@ -438,10 +438,12 @@
 
     <!-- 起名/测名 -->
     <div class="panel" id="panelName">
-      <div class="section-title">起名 · 五格简测（手动笔画版）</div>
+      <div class="section-title">起名 · 五格简测（姓名直输 · 笔画可补录）</div>
       <div class="hint">
         这个模块是一个<strong>轻量学习/自测</strong>功能，默认采用「最常见五格算法」的简化规则。
-        由于汉字笔画与流派差异较多，这里不做自动字库，改为<strong>你手动填笔画</strong>，结果会更可控也更适合学习。
+        你现在可以<strong>直接输入姓名</strong>，系统会尝试从<strong>本地缓存</strong>自动带出已记录的笔画。
+        若遇到未记录的字，会在下方显示空白笔画框，你补一次后会自动记住，方便你后续做“瞎编名字”对照实验。
+        <span class="muted">提示：不同流派/繁简体的笔画口径可能不同，这里更偏向你的学习研究用途。</span>
       </div>
 
       <div class="card">
@@ -467,7 +469,7 @@
         </div>
 
         <div class="row">
-          <label>笔画填写</label>
+          <label>笔画（自动尝试 · 可手动补）</label>
           <div id="nameStrokeInputs" class="stroke-inputs"></div>
         </div>
 
@@ -512,7 +514,20 @@
           1/2 木，3/4 火，5/6 土，7/8 金，9/0 水。用于快速学习参考。
         </div>
 
+        
         <div class="card subcard">
+          <div class="section-title">研究评分（娱乐参考）</div>
+          <div class="row score-row">
+            <div class="score-badge">
+              <span id="nameScoreVal">-</span><span class="score-suffix">/100</span>
+            </div>
+            <div class="score-text" id="nameScoreText">
+              用于你做古书数理对照与灵感筛选，不作现实定论。
+            </div>
+          </div>
+        </div>
+
+<div class="card subcard">
           <div class="section-title">三才（天-人-地）</div>
           <div class="row">
             <div id="ngSanCai" class="mono">-</div>

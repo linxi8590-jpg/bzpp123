@@ -144,6 +144,8 @@
     calcNameBtn: document.getElementById('calcNameBtn'),
     resetNameBtn: document.getElementById('resetNameBtn'),
     nameResultCard: document.getElementById('nameResultCard'),
+    nameScoreVal: document.getElementById('nameScoreVal'),
+    nameScoreText: document.getElementById('nameScoreText'),
     ngTian: document.getElementById('ngTian'),
     ngRen: document.getElementById('ngRen'),
     ngDi: document.getElementById('ngDi'),
@@ -2808,6 +2810,50 @@ function initMissingChildGuanShaList(){
       if(chars.length < need){
         return { ok:false, chars, surname:[], given:[] };
       }
+
+    /* 笔画辅助：本地缓存优先（可手动补录） */
+    const STROKE_DB = {
+      // 这里故意只放极少量示例字符，避免口径争议。
+      // 你补录过的字会自动写入本地缓存（localStorage），优先级最高。
+      "林": 8,
+      "曦": 20
+    };
+
+    function getStrokeCacheKey(ch){
+      return `stroke_${ch}`;
+    }
+
+    function getStrokeForChar(ch){
+      if(!ch) return null;
+      try{
+        const cached = localStorage.getItem(getStrokeCacheKey(ch));
+        if(cached !== null && cached !== ''){
+          const n = Number(cached);
+          if(Number.isFinite(n) && n > 0) return n;
+        }
+      }catch(e){}
+      const base = STROKE_DB[ch];
+      return (typeof base === 'number' && base > 0) ? base : null;
+    }
+
+    function setStrokeForChar(ch, n){
+      if(!ch) return;
+      const num = Number(n);
+      if(!Number.isFinite(num) || num < 1) return;
+      try{
+        localStorage.setItem(getStrokeCacheKey(ch), String(Math.round(num)));
+      }catch(e){}
+    }
+
+    function autoInferNameLens(full){
+      const len = Array.from(full).length;
+      if(len <= 1) return { sLen:1, gLen:2 };
+      if(len === 2) return { sLen:1, gLen:1 };
+      if(len === 3) return { sLen:1, gLen:2 };
+      if(len >= 4) return { sLen:2, gLen:2 };
+      return { sLen:1, gLen:2 };
+    }
+
       const surname = chars.slice(0, sLen);
       const given = chars.slice(sLen, sLen + gLen);
       return { ok:true, chars, surname, given };
@@ -2827,7 +2873,10 @@ function initMissingChildGuanShaList(){
       const totalBoxes = sLen + gLen;
 
       for(let i=0;i<totalBoxes;i++){
-        const ch = list[i] || (i < sLen ? '姓' : '名');
+        const isSurnamePos = i < sLen;
+        const fallbackChar = isSurnamePos ? '姓' : '名';
+        const ch = list[i] || fallbackChar;
+
         const box = document.createElement('div');
         box.className = 'stroke-box';
 
@@ -2838,14 +2887,38 @@ function initMissingChildGuanShaList(){
         const input = document.createElement('input');
         input.type = 'number';
         input.min = '1';
-        input.step = '1';
+        input.className = 'stroke-input';
         input.placeholder = '笔画';
-        input.dataset.idx = String(i);
+
+        const isRealChar = ch && ch !== '姓' && ch !== '名';
+        const autoStroke = isRealChar ? getStrokeForChar(ch) : null;
+
+        if(autoStroke){
+          input.value = String(autoStroke);
+          box.classList.add('auto');
+        }else if(isRealChar){
+          box.classList.add('missing');
+        }
+
+        if(isRealChar){
+          input.dataset.char = ch;
+          input.addEventListener('change', ()=>{
+            const v = Number(input.value);
+            if(Number.isFinite(v) && v > 0){
+              setStrokeForChar(ch, v);
+              box.classList.remove('missing');
+              // 用户手动补录后也视作可用
+            }else{
+              box.classList.add('missing');
+            }
+          });
+        }
 
         box.appendChild(label);
         box.appendChild(input);
         container.appendChild(box);
       }
+    }
     }
 
     function numElement(n){
@@ -2862,8 +2935,17 @@ function initMissingChildGuanShaList(){
       const arr = [];
       inputs.forEach(inp=>{
         const v = Number(inp.value);
-        arr.push(Number.isFinite(v) ? v : 0);
+        const num = (Number.isFinite(v) ? Math.round(v) : 0);
+        arr.push(num);
+        const ch = inp.dataset && inp.dataset.char;
+        if(ch && num > 0){
+          setStrokeForChar(ch, num);
+        }
       });
+      return arr;
+    });
+      return arr;
+    });
       return arr;
     }
 
@@ -2880,7 +2962,7 @@ function initMissingChildGuanShaList(){
 
       const strokes = collectStrokes();
       if(strokes.length < sLen + gLen){
-        toast('请先把每个字的笔画填完整～');
+        toast('还有字的笔画没补完～空着的框先填一下。');
         return null;
       }
       if(strokes.some(v => !v || v < 1)){
@@ -2917,7 +2999,56 @@ function initMissingChildGuanShaList(){
       };
     }
 
-    function renderFiveGridResult(res){
+    
+
+    function calcNameResearchScore(res){
+      if(!res) return null;
+      const elems = [
+        numElement(res.tian),
+        numElement(res.ren),
+        numElement(res.di),
+        numElement(res.wai),
+        numElement(res.zong)
+      ];
+      const counts = {};
+      elems.forEach(e=>{
+        counts[e] = (counts[e] || 0) + 1;
+      });
+      const unique = Object.keys(counts).length;
+
+      const balanceScore = 30 * (unique - 1) / 4;
+
+      const avg = (res.tian + res.ren + res.di + res.wai + res.zong) / 5;
+      let sizeScore = 0;
+      if(avg <= 5 || avg >= 55){
+        sizeScore = 0;
+      }else if(avg >= 15 && avg <= 35){
+        sizeScore = 20;
+      }else if(avg < 15){
+        sizeScore = 20 * (avg - 5) / 10;
+      }else{
+        sizeScore = 20 * (55 - avg) / 20;
+      }
+
+      const raw = 50 + balanceScore + sizeScore;
+      const score = Math.max(0, Math.min(100, Math.round(raw)));
+      return { score, unique, avg: Math.round(avg) };
+    }
+
+    function buildNameScoreText(meta){
+      if(!meta) return '';
+      const { unique, avg } = meta;
+      let t = `元素分布 ${unique} 种，均值 ${avg}。`;
+      if(unique <= 2){
+        t += ' 元素更集中，风格偏单一。';
+      }else if(unique >= 4){
+        t += ' 元素更丰富，适合做古书数理对照与灵感筛选。';
+      }else{
+        t += ' 元素数量适中，整体更平衡。';
+      }
+      return t;
+    }
+function renderFiveGridResult(res){
       if(!res) return;
 
       els.ngTian.textContent = String(res.tian);
@@ -2944,6 +3075,8 @@ function initMissingChildGuanShaList(){
       els.nameFullInput.value = '';
       const inputs = els.nameStrokeInputs.querySelectorAll('input');
       inputs.forEach(i=> i.value = '');
+      if(els.nameScoreVal) els.nameScoreVal.textContent = '-';
+      if(els.nameScoreText) els.nameScoreText.textContent = '用于你做古书数理对照与灵感筛选，不作现实定论。';
       els.nameResultCard.style.display = 'none';
       renderNameStrokeInputs();
     }
@@ -2952,13 +3085,45 @@ function initMissingChildGuanShaList(){
       if(window.__nameModuleWired) return;
       if(!els.nameFullInput || !els.calcNameBtn) return;
 
-      els.nameFullInput.addEventListener('input', renderNameStrokeInputs);
-      els.nameSurnameLen.addEventListener('change', renderNameStrokeInputs);
-      els.nameGivenLen.addEventListener('change', renderNameStrokeInputs);
+      let nameLenManual = false;
+
+      function maybeAutoSetLens(){
+        const full = normalizeNameStr(els.nameFullInput.value);
+        if(!full) return;
+        if(nameLenManual) return;
+        const { sLen, gLen } = autoInferNameLens(full);
+        if(String(els.nameSurnameLen.value) !== String(sLen)){
+          els.nameSurnameLen.value = String(sLen);
+        }
+        if(String(els.nameGivenLen.value) !== String(gLen)){
+          els.nameGivenLen.value = String(gLen);
+        }
+      }
+
+      els.nameFullInput.addEventListener('input', ()=>{
+        maybeAutoSetLens();
+        renderNameStrokeInputs();
+      });
+
+      els.nameSurnameLen.addEventListener('change', ()=>{
+        nameLenManual = true;
+        renderNameStrokeInputs();
+      });
+      els.nameGivenLen.addEventListener('change', ()=>{
+        nameLenManual = true;
+        renderNameStrokeInputs();
+      });
+
       els.calcNameBtn.addEventListener('click', ()=>{
         const res = computeFiveGrid();
         renderFiveGridResult(res);
       });
+      els.resetNameBtn.addEventListener('click', resetNameModule);
+
+      window.__nameModuleWired = true;
+      maybeAutoSetLens();
+      renderNameStrokeInputs();
+    });
       els.resetNameBtn.addEventListener('click', resetNameModule);
 
       window.__nameModuleWired = true;
@@ -3515,7 +3680,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   
-  const UI_VERSION = "v12.1-2025-12-10-02";
+  const UI_VERSION = "v12.2-2025-12-10-03";
 
   function initMeTools() {
     const uiEl = qs("#uiVersion");

@@ -1234,3 +1234,46 @@ body.group-ui.module-open .module-topbar{
     grid-template-columns: 1fr;
   }
 }
+
+
+    /* 起名自动笔画辅助 */
+    .stroke-box.missing{
+      border-color: rgba(255,207,125,.55);
+      box-shadow: 0 0 0 1px rgba(255,207,125,.15) inset;
+    }
+    .stroke-box.auto{
+      border-color: rgba(155,212,255,.35);
+    }
+    .stroke-input{
+      width: 70px;
+    }
+
+    /* 研究评分 */
+    .score-row{
+      align-items: center;
+      gap: 12px;
+    }
+    .score-badge{
+      display: inline-flex;
+      align-items: baseline;
+      gap: 2px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(216,182,92,.08);
+      font-weight: 800;
+      letter-spacing: .5px;
+    }
+    .score-badge #nameScoreVal{
+      font-size: 22px;
+      color: var(--accent-2);
+    }
+    .score-suffix{
+      opacity: .75;
+      font-size: 12px;
+    }
+    .score-text{
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.4;
+    }
