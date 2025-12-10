@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <!-- v11.13a: iOS 主屏幕“类 App”模式支持 -->
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="八字工具" />
+<meta name="theme-color" content="#0f1115" />
+
+<!-- 主屏幕图标（你上传同名 PNG 即可生效） -->
+<link rel="apple-touch-icon" sizes="180x180" href="icon-180.png" />
+<link rel="icon" sizes="192x192" href="icon-192.png" />
+<link rel="icon" sizes="512x512" href="icon-512.png" />
+
+  <title>八字排盘小工具 v11.13a（黄历 / 神煞）</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/lunar-javascript/lunar.js"></script>
+
+  
+
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="manifest" href="manifest.json" />
+</head>
+<body class="group-ui">
+  <div class="container">
+    <h1 class="title">🔮 八字排盘小工具 v11.13a</h1>
+    <p class="subtitle">
+      在 v5 的基础上新增：<b>黄历/万年历</b> 与 <b>神煞学习页</b>；排盘页增加“神煞（试行版）”。<br/>
+      神煞自动判定已扩展为<strong>“地支组合法 + 部分干支/日柱规则”</strong>：桃花 / 驿马 / 华盖 / 将星，以及文昌、天乙、国印、太极、禄神、羊刃、飞刃、血刃、红鸾、天喜、六合、魁罡、十恶大败、孤鸾、阴阳差错等。未覆盖者仍保留学习表，后续可继续补齐。<br/>
+      *本工具用于学习与日常参考，神煞与喜用皆非单点定论。
+    </p>
+    <!-- ============ 分组导航 · UI v12 ============ -->
+    <div class="module-topbar" id="moduleTopbar">
+      <button class="topbar-btn" id="moduleBackBtn" type="button">← 返回</button>
+      <div class="topbar-title" id="moduleTopTitle">模块</div>
+      <button class="topbar-btn" id="moduleCloseBtn" type="button">✕</button>
+    </div>
+
+    <div class="group-views" id="groupViews">
+      <!-- 首页 -->
+      <div class="group-view active" id="groupHome">
+        <div class="group-kicker">首页</div>
+        <div class="group-grid">
+          <button class="entry-card" data-module="Bazi" type="button">
+            <div class="entry-title">排盘</div>
+            <div class="entry-desc">核心排盘与快速神煞试行。</div>
+          </button>
+          <button class="entry-card" data-module="Name" type="button">
+            <div class="entry-title">起名</div>
+            <div class="entry-desc">启明 · 简易版候选生成。</div>
+          </button>
+          <button class="entry-card" data-module="Luck" type="button">
+            <div class="entry-title">运势</div>
+            <div class="entry-desc">流年/大运/简版参考。</div>
+          </button>
+        </div>
+      </div>
+
+      <!-- 工具 -->
+      <div class="group-view" id="groupTools">
+        <div class="group-kicker">工具</div>
+        <div class="group-grid">
+          <button class="entry-card" data-module="Jieqi" type="button">
+            <div class="entry-title">节气</div>
+            <div class="entry-desc">节气时间与相关提示。</div>
+          </button>
+          <button class="entry-card" data-module="Almanac" type="button">
+            <div class="entry-title">黄历</div>
+            <div class="entry-desc">宜忌/日值/简版黄历。</div>
+          </button>
+        </div>
+      </div>
+
+      <!-- 学习 -->
+      <div class="group-view" id="groupStudy">
+        <div class="group-kicker">学习</div>
+        <div class="group-grid">
+          <button class="entry-card" data-module="ShenSha" type="button">
+            <div class="entry-title">神煞</div>
+            <div class="entry-desc">学习表 + 规则补全入口。</div>
+          </button>
+        </div>
+      </div>
+
+      <!-- 我的 -->
+      <div class="group-view" id="groupMe">
+        <div class="group-kicker">我的</div>
+        
+        <div class="me-cards">
+          <div class="card me-card">
+            <div class="section-title">版本信息</div>
+            <div class="me-kv">
+              <div class="me-kv-row">
+                <span class="me-k">UI 版本</span>
+                <span class="me-v mono" id="uiVersion">-</span>
+              </div>
+              <div class="me-kv-row">
+                <span class="me-k">缓存版本</span>
+                <span class="me-v mono" id="cacheVersion">-</span>
+              </div>
+              <div class="me-kv-row">
+                <span class="me-k">构建标记</span>
+                <span class="me-v mono" id="buildTime">-</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="card me-card">
+            <div class="section-title">维护工具</div>
+            <div class="me-actions">
+              <button class="btn secondary" id="btnSoftReload" type="button">仅刷新页面</button>
+              <button class="btn" id="btnHardRefresh" type="button">清理缓存并刷新</button>
+            </div>
+            <div class="hint small-hint">
+              iOS 若出现页面不更新，可优先使用“清理缓存并刷新”。该操作仅清理本工具缓存，不影响其他网站。
+            </div>
+          </div>
+        </div>
+
+          <div class="empty-desc">后续可以放：主题、收藏、数据导入导出、个性设置等。</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tabs legacy-tabs">
+      <div class="tab-btn active" id="tabBazi">排盘</div>
+      <div class="tab-btn" id="tabJieqi">节气</div>
+      <div class="tab-btn" id="tabLuck">运势</div>
+      <div class="tab-btn" id="tabAlmanac">黄历</div>
+      <div class="tab-btn" id="tabShenSha">神煞</div>
+      <div class="tab-btn" id="tabName">起名</div>
+    </div>
+
+    <!-- 排盘面板 -->
+    <div class="panel active" id="panelBazi">
+      <div class="picker">
+        <div class="mode-row">
+          <div class="mode-pill active" id="solarModeBtn">公历输入</div>
+          <div class="mode-pill" id="lunarModeBtn">农历输入</div>
+        </div>
+
+        <div class="row">
+          <span class="label" id="yearLabel">公历年</span>
+          <input type="range" id="yearRange" />
+          <span class="value" id="yearVal"></span>
+        </div>
+
+        <div class="row">
+          <span class="label" id="monthLabel">公历月</span>
+          <input type="range" id="monthRange" />
+          <span class="value" id="monthVal"></span>
+        </div>
+
+        <div class="leap-row" id="leapRow">
+          <span class="label">闰月</span>
+          <label class="toggle">
+            <input type="checkbox" id="leapToggle" />
+            <span>若该年有闰此月才有效</span>
+          </label>
+        </div>
+
+        <div class="row">
+          <span class="label" id="dayLabel">公历日</span>
+          <input type="range" id="dayRange" />
+          <span class="value" id="dayVal"></span>
+        </div>
+
+        <div class="row">
+          <span class="label">小时</span>
+          <input type="range" id="hourRange" />
+          <span class="value" id="hourVal"></span>
+        </div>
+
+        <div class="row" id="minuteRow" style="display:none;">
+          <span class="label">分钟</span>
+          <input type="range" id="minuteRange" />
+          <span class="value" id="minuteVal"></span>
+        </div>
+
+        <div class="leap-row" id="minuteToggleRow" style="display:grid;">
+          <span class="label">精细</span>
+          <label class="toggle">
+            <input type="checkbox" id="minuteToggle" />
+            <span>开启分钟滑条</span>
+          </label>
+        </div>
+
+        
+        <div class="section" id="genderPickSection">
+          <div class="section-title">性别（用于大运方向/部分神煞）</div>
+          <div class="mode-row" style="grid-template-columns:1fr 1fr;">
+            <div class="mode-pill active" id="pickMaleBtn">男</div>
+            <div class="mode-pill" id="pickFemaleBtn">女</div>
+          </div>
+          <div class="small-note">此处选择会同步到“旺衰·运势”的性别参数。</div>
+        </div>
+
+
+<div class="section" id="adultStrengthSection">
+  <div class="section-title">成人神煞判定强度</div>
+  <div class="mode-row" style="grid-template-columns:1fr 1fr 1fr;">
+    <div class="mode-pill" id="pickStrictBtn" data-level="strict">严格</div>
+    <div class="mode-pill active" id="pickBalancedBtn" data-level="balanced">标准</div>
+    <div class="mode-pill" id="pickLooseBtn" data-level="loose">宽松</div>
+  </div>
+  <div class="small-note">严格：隐藏提示型/简化口径（学堂、词馆、三奇贵人、科甲星）。标准：默认推荐。宽松：用于对照民间口径。</div>
+</div>
+
+<div class="quick">
+          <div class="pill" id="nowPill">当前时间</div>
+          <div class="pill" id="linxiPill">林曦预设</div>
+          <div class="pill" id="yaoPill">曜预设</div>
+        </div>
+
+        <div class="actions">
+          <button class="btn" id="calcBtn">开始排盘</button>
+          <button class="btn secondary" id="copyBtn" disabled>复制结果</button>
+        </div>
+
+        <div class="actions">
+          <button class="btn secondary" id="setABtn">设为 A 盘</button>
+          <button class="btn secondary" id="compareBtn">用当前作 B 盘对照</button>
+        </div>
+
+        <div class="small-note" id="pickedText"></div>
+        <div class="small-note" id="crossText"></div>
+      </div>
+
+      <div id="result" class="result-box" aria-live="polite">
+        <div class="info" id="lunarInfo"></div>
+
+        <div class="section">
+          <div class="section-title">节气（当前 / 上一 / 下一）</div>
+          <div class="jieqi-line" id="jieqiLine"></div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">四柱</div>
+          <div class="bazi-grid">
+            <div class="pillar">
+              <span class="p-label">年柱</span>
+              <span class="gan" id="yearGan"></span>
+              <span class="zhi" id="yearZhi"></span>
+              <div class="sub" id="yearSub"></div>
+            </div>
+            <div class="pillar">
+              <span class="p-label">月柱</span>
+              <span class="gan" id="monthGan"></span>
+              <span class="zhi" id="monthZhi"></span>
+              <div class="sub" id="monthSub"></div>
+            </div>
+            <div class="pillar">
+              <span class="p-label">日柱</span>
+              <span class="gan" id="dayGan"></span>
+              <span class="zhi" id="dayZhi"></span>
+              <div class="sub" id="daySub"></div>
+            </div>
+            <div class="pillar">
+              <span class="p-label">时柱</span>
+              <span class="gan" id="timeGan"></span>
+              <span class="zhi" id="timeZhi"></span>
+              <div class="sub" id="timeSub"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">神煞（自动判定 · 扩展版）</div>
+          <div class="jieqi-line" id="ssInlineResult"></div>
+          <!-- v10.4: 学习表未自动化条目提示 -->
+          <details class="ss-missing" id="ssMissingBox">
+            <summary>查看学习表中尚未自动化的成人神煞清单</summary>
+            <div class="ss-missing-hint">这些条目已收录在“神煞学习表”，但尚未写入自动判定规则。你后续若想继续扩展，我会按“查法清晰度”分批加入。</div>
+            <div id="ssMissingList" class="ss-missing-list"></div>
+          </details>
+          <!-- v11.0: 小儿关煞未自动化条目提示 -->
+          <details class="ss-missing ss-missing--child" id="cgMissingBox">
+            <summary>查看学习表中尚未自动化的小儿关煞清单</summary>
+            <div class="ss-missing-hint">这些条目已收录在“小儿关煞学习表”，但尚未写入排盘页自动提示规则。</div>
+            <div id="cgMissingList" class="ss-missing-list"></div>
+          </details>
+          <div class="small-note">已内置自动判定：桃花 / 驿马 / 华盖 / 将星 + 部分干支/日柱类（文昌、天乙、国印、太极、禄神、羊刃、飞刃、血刃、红鸾、天喜、六合、魁罡、十恶大败、孤鸾、阴阳差错、地扫星、八败、流霞、铁板、铁扫把、埋儿煞等）+ 小儿关煞的部分时辰/月份/日干规则（短命关、四柱关、雷公打脑关、金锁关、无情关、五鬼关、天狗关、断桥关）。其余仍以“神煞”页学习表为准。</div>
+        </div>
+
+        <div class="compare-box" id="compareBox">
+          <div class="compare-title">
+            <span>对照盘（A vs B）</span>
+            <button class="btn secondary" id="clearCompareBtn" style="padding:6px 10px; font-size:11px; border-radius:10px;">清空A盘</button>
+          </div>
+          <div class="compare-grid">
+            <div class="compare-card">
+              <div class="tag">A 盘</div>
+              <div class="line" id="compareALine"></div>
+              <div class="meta" id="compareAMeta"></div>
+            </div>
+            <div class="compare-card">
+              <div class="tag">B 盘</div>
+              <div class="line" id="compareBLine"></div>
+              <div class="meta" id="compareBMeta"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="copy-hint" id="tzHint"></div>
+      </div>
+    </div>
+
+    <!-- 节气查询面板 -->
+    <div class="panel" id="panelJieqi">
+      <div class="jieqi-query">
+        <div class="year-select-row">
+          <span class="label">年份</span>
+          <input type="range" id="jieqiYearRange" />
+          <span class="value" id="jieqiYearVal"></span>
+        </div>
+        <div class="actions">
+          <button class="btn" id="jieqiQueryBtn">查询该年二十四节气</button>
+          <button class="btn secondary" id="jieqiCopyBtn" disabled>复制列表</button>
+        </div>
+        <div class="small-note" id="jieqiQueryHint"></div>
+        <div class="jieqi-list" id="jieqiList"></div>
+      </div>
+    </div>
+
+    <!-- 旺衰·运势面板 -->
+    <div class="panel" id="panelLuck">
+      <div class="luck-panel">
+        <div class="luck-mode-row">
+          <div class="luck-pill active" id="luckWsPill">身强弱·喜用</div>
+          <div class="luck-pill" id="luckFlowPill">流年·大运</div>
+        </div>
+
+        <div class="luck-box active" id="wsBox">
+          <div class="section-title">基于当前排盘时间（与“排盘”页一致）</div>
+          <div class="actions">
+            <button class="btn" id="wsCalcBtn">计算旺衰与喜用</button>
+            <button class="btn secondary" id="wsCopyBtn" disabled>复制说明</button>
+          </div>
+          <div class="small-note">算法为“简化子平旺衰权重模型”，强调可解释与学习对照。</div>
+
+          <div class="section" id="wsResult" style="display:none;">
+            <div class="section-title">结论</div>
+            <div class="jieqi-line" id="wsConclusion"></div>
+            <div class="explain" id="wsExplain"></div>
+          </div>
+        </div>
+
+        <div class="luck-box" id="flowBox">
+          <div class="section-title">流年预览（默认近十年）</div>
+          <div class="year-select-row">
+            <span class="label">基准年</span>
+            <input type="range" id="flowYearRange" />
+            <span class="value" id="flowYearVal"></span>
+          </div>
+          <div class="actions">
+            <button class="btn" id="flowCalcBtn">生成流年列表</button>
+            <button class="btn secondary" id="flowCopyBtn" disabled>复制流年</button>
+          </div>
+
+          <div class="section">
+            <div class="section-title">性别（仅用于尝试调用库的大运接口）</div>
+            <div class="mode-row" style="grid-template-columns:1fr 1fr;">
+              <div class="mode-pill active" id="maleBtn">男</div>
+              <div class="mode-pill" id="femaleBtn">女</div>
+            </div>
+            <div class="small-note">只用于库的大运参数；流年列表不受影响。</div>
+          </div>
+
+          <div class="section">
+            <div class="section-title">流年列表</div>
+            <div class="luck-list" id="flowList"></div>
+          </div>
+
+          <div class="section">
+            <div class="section-title">大运（实验性）</div>
+            <div class="small-note" id="dayunHint">尝试调用 lunar-javascript 的 Yun/DaYun 接口；若库版本不含这些方法，这里会显示“不可用”。</div>
+            <div class="luck-list" id="dayunList"></div>
+            <div class="small-note" id="dayunExplain"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 黄历 / 万年历 -->
+    <div class="panel" id="panelAlmanac">
+      <div class="almanac-panel">
+        <div class="almanac-row">
+          <span class="label" style="color:#8b90a1; font-size:12px;">选择日期</span>
+          <input class="date-input" type="date" id="almanacDate" />
+        </div>
+
+        <div class="actions">
+          <button class="btn" id="almanacTodayBtn">今天</button>
+          <button class="btn secondary" id="almanacCopyBtn" disabled>复制黄历</button>
+        </div>
+
+        <div class="section" id="almanacResult" style="display:none;">
+          <div class="section-title">当日信息</div>
+          <div class="almanac-kv" id="almanacKV"></div>
+        </div>
+
+        <div class="section" id="almanacYiJiSec" style="display:none;">
+          <div class="section-title">宜 / 忌（若库支持）</div>
+          <div class="almanac-kv" id="almanacYiJi"></div>
+        </div>
+
+        <div class="small-note">黄历信息优先读取库字段；若你看见“—”，说明当前 CDN 版本未暴露该接口。</div>
+      </div>
+    </div>
+
+    <!-- 神煞学习页 -->
+    <div class="panel" id="panelShenSha">
+      <div class="shensha-panel">
+        <div class="search-row">
+          <input class="search-input" id="ssSearch" placeholder="搜索神煞关键词（名称/作用/查法）" />
+          <div class="ss-filter-row">
+            <div class="ss-pill active" id="ssFilterAll">全部</div>
+            <div class="ss-pill" id="ssFilterCommon">常用</div>
+            <div class="ss-pill" id="ssFilterChild">小儿关煞</div>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button class="btn secondary" id="ssCopyListBtn">复制当前列表</button>
+          <button class="btn secondary" id="ssJumpExplainBtn">看“试行版规则说明”</button>
+        </div>
+
+        <div class="section" id="ssRuleExplain" style="display:none;">
+          <div class="section-title">排盘页“试行版”自动判定规则</div>
+          <div class="explain" id="ssRuleText"></div>
+        </div>
+
+        <div class="ss-list" id="ssList"></div>
+      </div>
+    </div>
+
+    <!-- 起名/测名 -->
+    <div class="panel" id="panelName">
+      <div class="section-title">起名 · 五格简测（姓名直输 · 笔画可补录）</div>
+      <div class="hint">
+        这个模块是一个<strong>轻量学习/自测</strong>功能，默认采用「最常见五格算法」的简化规则。
+        你现在可以<strong>直接输入姓名</strong>，系统会尝试从<strong>本地缓存</strong>自动带出已记录的笔画。
+        若遇到未记录的字，会在下方显示空白笔画框，你补一次后会自动记住，方便你后续做“瞎编名字”对照实验。
+        <span class="muted">提示：不同流派/繁简体的笔画口径可能不同，这里更偏向你的学习研究用途。</span>
+      </div>
+
+      <div class="card">
+        <div class="row">
+          <label>姓名</label>
+          <input id="nameFullInput" type="text" placeholder="例如：张三丰 / 欧阳娜娜" maxlength="8">
+        </div>
+
+        <div class="row">
+          <label>姓氏字数</label>
+          <select id="nameSurnameLen">
+            <option value="1" selected>单姓</option>
+            <option value="2">复姓</option>
+          </select>
+        </div>
+
+        <div class="row">
+          <label>名字字数</label>
+          <select id="nameGivenLen">
+            <option value="1">单名</option>
+            <option value="2" selected>双名</option>
+          </select>
+        </div>
+
+        <div class="row">
+          <label>笔画（自动尝试 · 可手动补）</label>
+          <div id="nameStrokeInputs" class="stroke-inputs"></div>
+        </div>
+
+        <div class="row">
+          <button class="primary" id="calcNameBtn">计算五格</button>
+          <button class="ghost" id="resetNameBtn">清空</button>
+        </div>
+      </div>
+
+      <div class="card" id="nameResultCard" style="display:none;">
+        <div class="section-title">五格结果</div>
+        <div class="name-grid">
+          <div class="ng-item">
+            <div class="ng-label">天格</div>
+            <div class="ng-value" id="ngTian">-</div>
+            <div class="ng-sub" id="ngTianWx">-</div>
+          </div>
+          <div class="ng-item">
+            <div class="ng-label">人格</div>
+            <div class="ng-value" id="ngRen">-</div>
+            <div class="ng-sub" id="ngRenWx">-</div>
+          </div>
+          <div class="ng-item">
+            <div class="ng-label">地格</div>
+            <div class="ng-value" id="ngDi">-</div>
+            <div class="ng-sub" id="ngDiWx">-</div>
+          </div>
+          <div class="ng-item">
+            <div class="ng-label">外格</div>
+            <div class="ng-value" id="ngWai">-</div>
+            <div class="ng-sub" id="ngWaiWx">-</div>
+          </div>
+          <div class="ng-item">
+            <div class="ng-label">总格</div>
+            <div class="ng-value" id="ngZong">-</div>
+            <div class="ng-sub" id="ngZongWx">-</div>
+          </div>
+        </div>
+
+        <div class="hint" id="nameExplain">
+          提示：这里的五行判定采用<strong>数理末位</strong>常见映射：
+          1/2 木，3/4 火，5/6 土，7/8 金，9/0 水。用于快速学习参考。
+        </div>
+
+        
+        <div class="card subcard">
+          <div class="section-title">研究评分（娱乐参考）</div>
+          <div class="row score-row">
+            <div class="score-badge">
+              <span id="nameScoreVal">-</span><span class="score-suffix">/100</span>
+            </div>
+            <div class="score-text" id="nameScoreText">
+              用于你做古书数理对照与灵感筛选，不作现实定论。
+            </div>
+          </div>
+        </div>
+
+<div class="card subcard">
+          <div class="section-title">三才（天-人-地）</div>
+          <div class="row">
+            <div id="ngSanCai" class="mono">-</div>
+          </div>
+        </div>
+
+        <div class="hint">
+          若你之后想要更“硬核”的版本（自动字库、81数理吉凶解释、同音筛选等），我们可以另开一层高级模式慢慢加。
+        </div>
+      </div>
+    </div>
+
+    <!-- 底部四栏导航 -->
+    <nav class="bottom-nav" id="bottomNav">
+      <button class="bottom-item active" data-group="home" type="button">
+        <span class="bi-icon">⌂</span>
+        <span class="bi-text">首页</span>
+      </button>
+      <button class="bottom-item" data-group="tools" type="button">
+        <span class="bi-icon">🧰</span>
+        <span class="bi-text">工具</span>
+      </button>
+      <button class="bottom-item" data-group="study" type="button">
+        <span class="bi-icon">📚</span>
+        <span class="bi-text">学习</span>
+      </button>
+      <button class="bottom-item" data-group="me" type="button">
+        <span class="bi-icon">👤</span>
+        <span class="bi-text">我的</span>
+      </button>
+    </nav>
+    <div class="toast" id="toast"></div>
+  </div>
+
+  <script src="./data.js"></script>
+  <script src="./app.js"></script>
+  <script>
+    // 注册 PWA 的 service worker
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("./sw.js");
+      });
+    }
+  </script>
+</body>
+</html>
