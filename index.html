@@ -23,7 +23,7 @@
   <link rel="stylesheet" href="styles.css" />
   <link rel="manifest" href="manifest.json" />
 </head>
-<body>
+<body class="group-ui">
   <div class="container">
     <h1 class="title">🔮 八字排盘小工具 v11.13a</h1>
     <p class="subtitle">
@@ -31,71 +31,80 @@
       神煞自动判定已扩展为<strong>“地支组合法 + 部分干支/日柱规则”</strong>：桃花 / 驿马 / 华盖 / 将星，以及文昌、天乙、国印、太极、禄神、羊刃、飞刃、血刃、红鸾、天喜、六合、魁罡、十恶大败、孤鸾、阴阳差错等。未覆盖者仍保留学习表，后续可继续补齐。<br/>
       *本工具用于学习与日常参考，神煞与喜用皆非单点定论。
     </p>
+    <!-- ============ 分组导航 · UI v12 ============ -->
+    <div class="module-topbar" id="moduleTopbar">
+      <button class="topbar-btn" id="moduleBackBtn" type="button">← 返回</button>
+      <div class="topbar-title" id="moduleTopTitle">模块</div>
+      <button class="topbar-btn" id="moduleCloseBtn" type="button">✕</button>
+    </div>
 
-    <div class="tabs">
-      <div class="tab-btn active" id="tabHome">总览</div>
-      <div class="tab-btn" id="tabBazi">排盘</div>
+    <div class="group-views" id="groupViews">
+      <!-- 首页 -->
+      <div class="group-view active" id="groupHome">
+        <div class="group-kicker">首页</div>
+        <div class="group-grid">
+          <button class="entry-card" data-module="Bazi" type="button">
+            <div class="entry-title">排盘</div>
+            <div class="entry-desc">核心排盘与快速神煞试行。</div>
+          </button>
+          <button class="entry-card" data-module="Name" type="button">
+            <div class="entry-title">起名</div>
+            <div class="entry-desc">启明 · 简易版候选生成。</div>
+          </button>
+          <button class="entry-card" data-module="Luck" type="button">
+            <div class="entry-title">运势</div>
+            <div class="entry-desc">流年/大运/简版参考。</div>
+          </button>
+        </div>
+      </div>
+
+      <!-- 工具 -->
+      <div class="group-view" id="groupTools">
+        <div class="group-kicker">工具</div>
+        <div class="group-grid">
+          <button class="entry-card" data-module="Jieqi" type="button">
+            <div class="entry-title">节气</div>
+            <div class="entry-desc">节气时间与相关提示。</div>
+          </button>
+          <button class="entry-card" data-module="Almanac" type="button">
+            <div class="entry-title">黄历</div>
+            <div class="entry-desc">宜忌/日值/简版黄历。</div>
+          </button>
+        </div>
+      </div>
+
+      <!-- 学习 -->
+      <div class="group-view" id="groupStudy">
+        <div class="group-kicker">学习</div>
+        <div class="group-grid">
+          <button class="entry-card" data-module="ShenSha" type="button">
+            <div class="entry-title">神煞</div>
+            <div class="entry-desc">学习表 + 规则补全入口。</div>
+          </button>
+        </div>
+      </div>
+
+      <!-- 我的 -->
+      <div class="group-view" id="groupMe">
+        <div class="group-kicker">我的</div>
+        <div class="empty-state">
+          <div class="empty-title">这里先空着</div>
+          <div class="empty-desc">后续可以放：主题、收藏、数据导入导出、个性设置等。</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tabs legacy-tabs">
+      <div class="tab-btn active" id="tabBazi">排盘</div>
       <div class="tab-btn" id="tabJieqi">节气</div>
       <div class="tab-btn" id="tabLuck">运势</div>
       <div class="tab-btn" id="tabAlmanac">黄历</div>
       <div class="tab-btn" id="tabShenSha">神煞</div>
       <div class="tab-btn" id="tabName">起名</div>
-      <div class="tab-spacer"></div>
-      <button class="tab-action-btn" id="navBackHome" title="返回总览">返回</button>
-      <button class="tab-action-btn" id="navToggleTabs" title="收起/展开导航">关闭</button>
-    </div>
-
-
-    <!-- 总览面板 -->
-    <div class="panel active" id="panelHome">
-      <div class="home-hero">
-        <div class="home-hero-title">你的八字工具工作台</div>
-        <div class="home-hero-sub">功能已齐，接下来让秩序和颜值一起上桌。</div>
-      </div>
-
-      <div class="home-groups">
-        <div class="home-group-card">
-          <div class="home-group-kicker">核心</div>
-          <div class="home-group-title">排盘与运势</div>
-          <div class="home-group-actions">
-            <button class="home-link" data-tab="bazi">八字排盘</button>
-            <button class="home-link" data-tab="luck">运势</button>
-          </div>
-        </div>
-
-        <div class="home-group-card">
-          <div class="home-group-kicker">工具</div>
-          <div class="home-group-title">时序与日用</div>
-          <div class="home-group-actions">
-            <button class="home-link" data-tab="jieqi">节气</button>
-            <button class="home-link" data-tab="almanac">黄历</button>
-          </div>
-        </div>
-
-        <div class="home-group-card">
-          <div class="home-group-kicker">学习</div>
-          <div class="home-group-title">神煞资料库</div>
-          <div class="home-group-actions">
-            <button class="home-link" data-tab="shensha">神煞</button>
-          </div>
-        </div>
-
-        <div class="home-group-card">
-          <div class="home-group-kicker">启明</div>
-          <div class="home-group-title">起名探索（简易版）</div>
-          <div class="home-group-actions">
-            <button class="home-link" data-tab="name">进入起名</button>
-          </div>
-        </div>
-      </div>
-
-      <div class="home-tip">
-        <span>提示：</span>你可以把这里当“菜单页”。以后新增模块，只要在这里加一个入口按钮即可。
-      </div>
     </div>
 
     <!-- 排盘面板 -->
-    <div class="panel" id="panelBazi">
+    <div class="panel active" id="panelBazi">
       <div class="picker">
         <div class="mode-row">
           <div class="mode-pill active" id="solarModeBtn">公历输入</div>
@@ -486,6 +495,25 @@
       </div>
     </div>
 
+    <!-- 底部四栏导航 -->
+    <nav class="bottom-nav" id="bottomNav">
+      <button class="bottom-item active" data-group="home" type="button">
+        <span class="bi-icon">⌂</span>
+        <span class="bi-text">首页</span>
+      </button>
+      <button class="bottom-item" data-group="tools" type="button">
+        <span class="bi-icon">🧰</span>
+        <span class="bi-text">工具</span>
+      </button>
+      <button class="bottom-item" data-group="study" type="button">
+        <span class="bi-icon">📚</span>
+        <span class="bi-text">学习</span>
+      </button>
+      <button class="bottom-item" data-group="me" type="button">
+        <span class="bi-icon">👤</span>
+        <span class="bi-text">我的</span>
+      </button>
+    </nav>
     <div class="toast" id="toast"></div>
   </div>
 

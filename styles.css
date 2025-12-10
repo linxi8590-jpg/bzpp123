@@ -992,112 +992,189 @@
     }
 
 
-/* ===================== v11.13a UI 分组导航补丁 ===================== */
-.tab-spacer{
-  flex: 1 1 auto;
+/* =========================
+   UI v12 · 底部四栏分组导航
+   说明：不改功能逻辑，仅重排入口
+   ========================= */
+
+/* 让容器给底部导航预留空间 */
+body.group-ui .container{
+  padding-bottom: 88px;
 }
 
-.tab-action-btn{
-  flex: 0 0 auto;
-  padding: 8px 10px;
-  border-radius: 10px;
-  border: 1px solid rgba(255,255,255,.08);
-  background: rgba(255,255,255,.03);
-  color: var(--muted);
-  font-size: 12px;
-  line-height: 1;
-  cursor: pointer;
-  transition: filter .12s ease, transform .12s ease, border-color .12s ease;
-}
-.tab-action-btn:hover{
-  filter: brightness(1.08);
-  transform: translateY(-1px);
-  border-color: rgba(214,174,102,.35);
-  color: #fff;
+/* 隐藏旧的顶栏模块 Tabs（仍保留 DOM 供 JS 复用） */
+body.group-ui .legacy-tabs{
+  display: none !important;
 }
 
-/* 仅收起“入口按钮”，保留关闭/返回按钮 */
-body.tabs-collapsed .tabs .tab-btn,
-body.tabs-collapsed .tabs .tab-spacer{
+/* 默认显示分组页，隐藏模块面板 */
+body.group-ui .panel{
   display: none;
 }
-body.tabs-collapsed .tabs{
-  justify-content: flex-end;
+
+/* 模块顶栏 */
+.module-topbar{
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 10px;
+  margin: 8px 0 10px;
+  border-radius: var(--radius-md, 12px);
+  background: linear-gradient(135deg, rgba(255,255,255,.04), rgba(255,255,255,.01));
+  border: 1px solid rgba(255,255,255,.06);
 }
 
-/* 总览面板 */
-.home-hero{
-  padding: 14px 14px 8px;
-  border-radius: 14px;
-  background:
-    radial-gradient(320px 120px at 10% 0%, rgba(214,174,102,.12), transparent 60%),
-    linear-gradient(135deg, rgba(255,255,255,.04), transparent 40%);
-  border: 1px solid rgba(255,255,255,.06);
-  margin-bottom: 14px;
-}
-.home-hero-title{
-  font-size: 22px;
+.module-topbar .topbar-title{
+  font-size: 15px;
+  font-weight: 600;
   letter-spacing: .5px;
 }
-.home-hero-sub{
-  margin-top: 6px;
+
+.module-topbar .topbar-btn{
+  background: rgba(255,255,255,.04);
+  border: 1px solid rgba(255,255,255,.08);
+  color: var(--text, #fff);
+  padding: 6px 10px;
+  border-radius: 10px;
   font-size: 12px;
-  color: var(--muted);
+  cursor: pointer;
 }
 
-.home-groups{
+.module-topbar .topbar-btn:active{
+  transform: translateY(1px);
+}
+
+/* 分组视图 */
+.group-views{
+  margin: 10px 0 6px;
+}
+
+.group-view{
+  display: none;
+}
+
+.group-view.active{
+  display: block;
+}
+
+.group-kicker{
+  font-size: 11px;
+  letter-spacing: 1.2px;
+  color: rgba(215,178,106,.9);
+  margin: 8px 2px 10px;
+}
+
+.group-grid{
   display: grid;
-  grid-template-columns: repeat(2, minmax(0,1fr));
-  gap: 12px;
-}
-@media (max-width: 720px){
-  .home-groups{ grid-template-columns: 1fr; }
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
 }
 
-.home-group-card{
+@media (max-width: 560px){
+  .group-grid{
+    grid-template-columns: 1fr;
+  }
+}
+
+.entry-card{
+  text-align: left;
   padding: 14px 14px 12px;
   border-radius: 14px;
   border: 1px solid rgba(255,255,255,.06);
   background:
-    linear-gradient(135deg, rgba(255,255,255,.035), transparent 45%),
-    linear-gradient(180deg, rgba(255,255,255,.02), transparent 35%);
-}
-.home-group-kicker{
-  font-size: 10px;
-  color: rgba(214,174,102,.9);
-  letter-spacing: 1.2px;
-}
-.home-group-title{
-  margin-top: 4px;
-  font-size: 15px;
-}
-.home-group-actions{
-  margin-top: 10px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-.home-link{
-  padding: 8px 10px;
-  border-radius: 10px;
-  border: 1px solid rgba(255,255,255,.08);
-  background: rgba(255,255,255,.03);
-  color: #fff;
-  font-size: 12px;
+    radial-gradient(300px 120px at 10% 0%, rgba(215,178,106,.08), transparent 60%),
+    linear-gradient(135deg, rgba(255,255,255,.03), rgba(255,255,255,.01));
   cursor: pointer;
-  transition: filter .12s ease, transform .12s ease, border-color .12s ease;
-}
-.home-link:hover{
-  filter: brightness(1.08);
-  transform: translateY(-1px);
-  border-color: rgba(214,174,102,.35);
 }
 
-.home-tip{
-  margin-top: 14px;
-  padding: 10px 12px;
+.entry-card:hover{
+  border-color: rgba(215,178,106,.25);
+}
+
+.entry-title{
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.entry-desc{
+  font-size: 11.5px;
+  color: rgba(255,255,255,.6);
+}
+
+/* 空状态 */
+.empty-state{
+  padding: 18px 14px;
+  border-radius: 14px;
+  border: 1px dashed rgba(255,255,255,.10);
+  color: rgba(255,255,255,.65);
+}
+
+.empty-title{
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.empty-desc{
+  font-size: 11.5px;
+}
+
+/* 底部导航 */
+.bottom-nav{
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 66px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0;
+  padding: 6px 10px 10px;
+  background:
+    linear-gradient(180deg, rgba(0,0,0,0), rgba(0,0,0,.25) 25%, rgba(0,0,0,.45)),
+    linear-gradient(180deg, #0b0d12, #07080c);
+  border-top: 1px solid rgba(255,255,255,.06);
+  z-index: 999;
+  backdrop-filter: blur(10px);
+}
+
+.bottom-item{
+  appearance: none;
+  border: 1px solid transparent;
+  background: transparent;
+  color: rgba(255,255,255,.65);
   border-radius: 12px;
-  border: 1px dashed rgba(255,255,255,.08);
-  color: var(--muted);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  cursor: pointer;
   font-size: 11px;
+}
+
+.bottom-item .bi-icon{
+  font-size: 16px;
+  line-height: 1;
+}
+
+.bottom-item.active{
+  color: #fff;
+  border-color: rgba(215,178,106,.28);
+  background: linear-gradient(135deg, rgba(215,178,106,.14), rgba(255,255,255,.02));
+}
+
+/* 当模块打开时：隐藏分组页，显示模块面板 + 顶栏 */
+body.group-ui.module-open .group-views{
+  display: none;
+}
+
+body.group-ui.module-open .panel{
+  display: block;
+}
+
+body.group-ui.module-open .module-topbar{
+  display: flex;
 }

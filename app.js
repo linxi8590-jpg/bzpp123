@@ -1,6 +1,5 @@
 /* ===================== 基础引用 ===================== */
   const els = {
-    tabHome: document.getElementById('tabHome'),
     tabBazi: document.getElementById('tabBazi'),
     tabJieqi: document.getElementById('tabJieqi'),
     tabLuck: document.getElementById('tabLuck'),
@@ -8,7 +7,6 @@
     tabShenSha: document.getElementById('tabShenSha'),
     tabName: document.getElementById('tabName'),
 
-    panelHome: document.getElementById('panelHome'),
     panelBazi: document.getElementById('panelBazi'),
     panelJieqi: document.getElementById('panelJieqi'),
     panelLuck: document.getElementById('panelLuck'),
@@ -2602,7 +2600,6 @@ const timeStr = els.minuteToggle.checked ? `${pad2(h)}:${pad2(min)}` : `${pad2(h
   function switchTab(which){
     if(which === 'name' && typeof setupNameModule === 'function'){ setupNameModule(); }
     const map = {
-      home: [els.tabHome, els.panelHome],
       bazi: [els.tabBazi, els.panelBazi],
       jieqi: [els.tabJieqi, els.panelJieqi],
       luck: [els.tabLuck, els.panelLuck],
@@ -2792,34 +2789,12 @@ function initMissingChildGuanShaList(){
     }
 
     /* Tabs */
-    if(els.tabHome) els.tabHome.addEventListener('click', () => switchTab('home'));
     els.tabBazi.addEventListener('click', () => switchTab('bazi'));
     els.tabJieqi.addEventListener('click', () => switchTab('jieqi'));
     els.tabLuck.addEventListener('click', () => switchTab('luck'));
     els.tabAlmanac.addEventListener('click', () => switchTab('almanac'));
     els.tabShenSha.addEventListener('click', () => switchTab('shensha'));
     els.tabName.addEventListener('click', () => switchTab('name'));
-
-    // 总览快捷入口按钮
-    document.querySelectorAll('.home-link').forEach(btn=>{
-      btn.addEventListener('click', ()=>{
-        const t = btn.getAttribute('data-tab');
-        if(t) switchTab(t);
-      });
-    });
-
-    // 顶部返回/关闭导航
-    const navBackHome = document.getElementById('navBackHome');
-    const navToggleTabs = document.getElementById('navToggleTabs');
-    if(navBackHome){
-      navBackHome.addEventListener('click', ()=> switchTab('home'));
-    }
-    if(navToggleTabs){
-      navToggleTabs.addEventListener('click', ()=>{
-        document.body.classList.toggle('tabs-collapsed');
-        navToggleTabs.textContent = document.body.classList.contains('tabs-collapsed') ? '展开' : '关闭';
-      });
-    }
 
 
     /* 起名模块 */
@@ -3382,7 +3357,7 @@ function showPanFocusHint(name, method){
 function jumpToPanFromLearning(name, method){
   try{
     if(typeof switchTab === 'function'){
-      switchTab('home');
+      switchTab('bazi');
     }
   }catch(e){}
   setTimeout(()=> showPanFocusHint(name, method), 60);
@@ -3419,4 +3394,139 @@ document.addEventListener('DOMContentLoaded', () => {
     jumpToPanFromLearning(name, method);
   };
   try{ document.addEventListener('click', handler, true); }catch(e){}
+})();
+
+
+
+/* =========================
+   UI v12 · 底部四栏分组导航
+   不改核心功能，仅重排入口与导航
+   ========================= */
+(function () {
+  const moduleToTabId = {
+    Bazi: "tabBazi",
+    Name: "tabName",
+    Luck: "tabLuck",
+    Jieqi: "tabJieqi",
+    Almanac: "tabAlmanac",
+    ShenSha: "tabShenSha",
+  };
+
+  const moduleToTitle = {
+    Bazi: "排盘",
+    Name: "起名",
+    Luck: "运势",
+    Jieqi: "节气",
+    Almanac: "黄历",
+    ShenSha: "神煞",
+  };
+
+  const moduleToGroup = {
+    Bazi: "home",
+    Name: "home",
+    Luck: "home",
+    Jieqi: "tools",
+    Almanac: "tools",
+    ShenSha: "study",
+  };
+
+  const groupToViewId = {
+    home: "groupHome",
+    tools: "groupTools",
+    study: "groupStudy",
+    me: "groupMe",
+  };
+
+  let lastGroup = "home";
+
+  function qs(sel) { return document.querySelector(sel); }
+  function qsa(sel) { return Array.from(document.querySelectorAll(sel)); }
+
+  function setBottomActive(key) {
+    qsa("#bottomNav .bottom-item").forEach(btn => {
+      btn.classList.toggle("active", btn.dataset.group === key);
+    });
+  }
+
+  function setGroupActive(key) {
+    Object.values(groupToViewId).forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.classList.remove("active");
+    });
+    const viewId = groupToViewId[key];
+    const target = viewId ? document.getElementById(viewId) : null;
+    if (target) target.classList.add("active");
+  }
+
+  function updateTopbar(moduleKey) {
+    const titleEl = qs("#moduleTopTitle");
+    if (titleEl) titleEl.textContent = moduleToTitle[moduleKey] || "模块";
+  }
+
+  function showGroup(key) {
+    lastGroup = key || lastGroup || "home";
+    document.body.classList.remove("module-open");
+    setBottomActive(lastGroup);
+    setGroupActive(lastGroup);
+
+    // 滚动回顶部，防止切分组时位置怪
+    const container = qs(".container");
+    if (container) container.scrollIntoView({ block: "start", behavior: "smooth" });
+  }
+
+  function openModule(moduleKey) {
+    const tabId = moduleToTabId[moduleKey];
+    const tabEl = tabId ? document.getElementById(tabId) : null;
+
+    lastGroup = moduleToGroup[moduleKey] || lastGroup || "home";
+
+    if (tabEl && typeof tabEl.click === "function") {
+      tabEl.click(); // 复用原有切换逻辑
+    }
+
+    updateTopbar(moduleKey);
+    document.body.classList.add("module-open");
+    setBottomActive(lastGroup);
+  }
+
+  function bindEntryCards() {
+    qsa(".entry-card[data-module]").forEach(card => {
+      card.addEventListener("click", () => {
+        const moduleKey = card.dataset.module;
+        if (moduleKey) openModule(moduleKey);
+      });
+    });
+  }
+
+  function bindBottomNav() {
+    qsa("#bottomNav .bottom-item").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const key = btn.dataset.group;
+        showGroup(key);
+      });
+    });
+  }
+
+  function bindTopbarBtns() {
+    const backBtn = qs("#moduleBackBtn");
+    const closeBtn = qs("#moduleCloseBtn");
+    if (backBtn) backBtn.addEventListener("click", () => showGroup(lastGroup));
+    if (closeBtn) closeBtn.addEventListener("click", () => showGroup(lastGroup));
+  }
+
+  function initGroupUI() {
+    if (!qs("#groupViews") || !qs("#bottomNav")) return;
+
+    bindEntryCards();
+    bindBottomNav();
+    bindTopbarBtns();
+
+    // 初始落在首页分组，避免直接进旧模块页
+    showGroup("home");
+  }
+
+  // 尽量等原脚本完成基础绑定后再启动分组 UI
+  document.addEventListener("DOMContentLoaded", () => {
+    setTimeout(initGroupUI, 0);
+  });
 })();
