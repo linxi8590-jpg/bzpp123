@@ -3623,7 +3623,7 @@ function resetShenShaViewState(){
   }catch(e){}
 }
 
-/ 包裹 renderShenShaList：渲染后注入按钮
+// 包裹 renderShenShaList：渲染后注入按钮
 (function(){
   try{
     if(typeof renderShenShaList === 'function' && !renderShenShaList.__patched_v119a){
