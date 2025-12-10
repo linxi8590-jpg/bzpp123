@@ -3339,6 +3339,8 @@ function initSsDetailEventsSafe(){
     const handler = (e) => {
       const badge = e.target && e.target.closest ? e.target.closest('.ss-inline-badge') : null;
       if(!badge) return;
+      if(e.stopPropagation) e.stopPropagation();
+      if(e.preventDefault) e.preventDefault();
 
       const meta = {
         kind: badge.dataset.kind || (badge.classList.contains('child') ? 'child' : 'adult'),
@@ -3356,9 +3358,6 @@ function initSsDetailEventsSafe(){
     if(container){
       container.addEventListener('click', handler);
     }
-    // 兜底：全局绑定
-    document.addEventListener('click', handler);
-
     const overlay = document.getElementById('ssDetailOverlay');
     const closeBtn = document.getElementById('ssDetailCloseBtn');
     if(closeBtn) closeBtn.addEventListener('click', closeSsDetailSafe);
@@ -3457,15 +3456,28 @@ function injectLearningLinkIntoDetail(meta){
   }catch(e){}
 })();
 
-// 全局委托：处理详情卡片按钮点击
+// 仅在神煞详情浮层内处理「去学习表」点击，避免全局误触
 (function(){
   const handler = (e) => {
-    const link = e.target && e.target.closest ? e.target.closest('.ss-detail-link[data-action="to-learning"]') : null;
+    const link = e.target && e.target.closest
+      ? e.target.closest('.ss-detail-link[data-action="to-learning"]')
+      : null;
     if(!link) return;
+    if(e.stopPropagation) e.stopPropagation();
+    if(e.preventDefault) e.preventDefault();
     const name = link.dataset.name || '';
     jumpToShenShaLearningSafe(name);
   };
-  try{ document.addEventListener('click', handler, true); }catch(e){}
+  try{
+    document.addEventListener('DOMContentLoaded', () => {
+      try{
+        const overlay = document.getElementById('ssDetailOverlay');
+        if(overlay){
+          overlay.addEventListener('click', handler, true);
+        }
+      }catch(e){}
+    });
+  }catch(e){}
 })();
 
 
@@ -3555,16 +3567,29 @@ document.addEventListener('DOMContentLoaded', () => {
   setTimeout(()=>{ try{ injectLearnToPanButtons(); }catch(e){} }, 0);
 });
 
-// 全局委托：学习表按钮点击
+// 限定在神煞学习面板内处理「去排盘试盘」点击，避免全局误触
 (function(){
   const handler = (e) => {
-    const btn = e.target && e.target.closest ? e.target.closest('.ss-learn-to-pan') : null;
+    const btn = e.target && e.target.closest
+      ? e.target.closest('.ss-learn-to-pan')
+      : null;
     if(!btn) return;
+    if(e.stopPropagation) e.stopPropagation();
+    if(e.preventDefault) e.preventDefault();
     const name = btn.dataset.name || '';
     const method = btn.dataset.method || '';
     jumpToPanFromLearning(name, method);
   };
-  try{ document.addEventListener('click', handler, true); }catch(e){}
+  try{
+    document.addEventListener('DOMContentLoaded', () => {
+      try{
+        const panel = document.getElementById('panelShenSha');
+        if(panel){
+          panel.addEventListener('click', handler, true);
+        }
+      }catch(e){}
+    });
+  }catch(e){}
 })();
 
 
