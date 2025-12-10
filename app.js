@@ -2811,7 +2811,12 @@ function initMissingChildGuanShaList(){
         return { ok:false, chars, surname:[], given:[] };
       }
 
-    /* 笔画辅助：本地缓存优先（可手动补录） */
+      const surname = chars.slice(0, sLen);
+      const given = chars.slice(sLen, sLen + gLen);
+      return { ok:true, chars, surname, given };
+    }
+
+/* 笔画辅助：本地缓存优先（可手动补录） */
     const STROKE_DB = {
       // 这里故意只放极少量示例字符，避免口径争议。
       // 你补录过的字会自动写入本地缓存（localStorage），优先级最高。
@@ -2854,12 +2859,7 @@ function initMissingChildGuanShaList(){
       return { sLen:1, gLen:2 };
     }
 
-      const surname = chars.slice(0, sLen);
-      const given = chars.slice(sLen, sLen + gLen);
-      return { ok:true, chars, surname, given };
-    }
-
-    function renderNameStrokeInputs(){
+      function renderNameStrokeInputs(){
       if(!els.nameFullInput) return;
       const full = normalizeNameStr(els.nameFullInput.value);
       const sLen = Number(els.nameSurnameLen.value || 1);
@@ -2935,7 +2935,7 @@ function initMissingChildGuanShaList(){
       const arr = [];
       inputs.forEach(inp=>{
         const v = Number(inp.value);
-        const num = (Number.isFinite(v) ? Math.round(v) : 0);
+        const num = Number.isFinite(v) ? Math.round(v) : 0;
         arr.push(num);
         const ch = inp.dataset && inp.dataset.char;
         if(ch && num > 0){
@@ -2943,13 +2943,9 @@ function initMissingChildGuanShaList(){
         }
       });
       return arr;
-    });
-      return arr;
-    });
-      return arr;
     }
 
-    function computeFiveGrid(){
+function computeFiveGrid(){
       const full = normalizeNameStr(els.nameFullInput.value);
       const sLen = Number(els.nameSurnameLen.value || 1);
       const gLen = Number(els.nameGivenLen.value || 2);
@@ -3123,14 +3119,10 @@ function renderFiveGridResult(res){
       window.__nameModuleWired = true;
       maybeAutoSetLens();
       renderNameStrokeInputs();
-    });
-      els.resetNameBtn.addEventListener('click', resetNameModule);
-
-      window.__nameModuleWired = true;
-      renderNameStrokeInputs();
     }
 
     setupNameModule();
+
 
     /* 节气年 */
     const now = new Date();
