@@ -157,7 +157,8 @@
     ngWaiWx: document.getElementById('ngWaiWx'),
     ngZongWx: document.getElementById('ngZongWx'),
     ngSanCai: document.getElementById('ngSanCai'),
-    nameExplain: document.getElementById('nameExplain')
+    nameExplain: document.getElementById('nameExplain'),
+    nameShuLiRef: document.getElementById('nameShuLiRef')
 
   };
 
@@ -2785,13 +2786,6 @@ function splitNameChars(full, sLen, gLen){
 }
 
 /* 笔画辅助：本地缓存优先（可手动补录） */
-const STROKE_DB = {
-  // 这里故意只放极少量示例字符，避免口径争议。
-  // 你补录过的字会自动写入本地缓存（localStorage），优先级最高。
-  "林": 8,
-  "曦": 20
-};
-
 function getStrokeCacheKey(ch){
   return `stroke_${ch}`;
 }
@@ -3042,6 +3036,23 @@ function renderFiveGridResult(res){
     if(els.nameScoreText) els.nameScoreText.textContent = '用于你做古书数理对照与灵感筛选，不作现实定论。';
   }
 
+
+  if(els.nameShuLiRef){
+    let refText = '暂无 81 数理参考。请先完成一次五格计算。';
+    try{
+      const num = Number(res.zong);
+      if(num && num >= 1 && num <= 81 && typeof SHU_LI_81 !== 'undefined'){
+        const entry = SHU_LI_81[num];
+        if(entry){
+          refText = `总格 ${num} · ${entry.luck}（晨整理版）︰${entry.text}`;
+        }else{
+          refText = `总格 ${num}：当前晨版 81 数理字典未收录详细说明，可自行补充。`;
+        }
+      }
+    }catch(e){}
+    els.nameShuLiRef.textContent = refText;
+  }
+
   if(els.nameResultCard){
     els.nameResultCard.style.display = 'block';
   }
@@ -3054,6 +3065,7 @@ function resetNameModule(){
   inputs.forEach(i => i.value = '');
   if(els.nameScoreVal) els.nameScoreVal.textContent = '-';
   if(els.nameScoreText) els.nameScoreText.textContent = '用于你做古书数理对照与灵感筛选，不作现实定论。';
+  if(els.nameShuLiRef) els.nameShuLiRef.textContent = '暂无 81 数理参考。请先完成一次五格计算。';
   if(els.nameResultCard) els.nameResultCard.style.display = 'none';
   renderNameStrokeInputs();
 }
