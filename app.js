@@ -158,7 +158,8 @@
     ngZongWx: document.getElementById('ngZongWx'),
     ngSanCai: document.getElementById('ngSanCai'),
     nameExplain: document.getElementById('nameExplain'),
-    nameShuLiRef: document.getElementById('nameShuLiRef')
+    nameShuLiRef: document.getElementById('nameShuLiRef'),
+    nameCharMeta: document.getElementById('nameCharMeta')
 
   };
 

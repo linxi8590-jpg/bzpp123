@@ -287,6 +287,42 @@ function renderFiveGridResult(res){
     els.nameShuLiRef.textContent = refText;
   }
 
+  if(els.nameCharMeta){
+    let text = '暂未加载字库信息。请先完成一次五格计算。';
+    try{
+      const full = (res.full || '').trim();
+      const chars = Array.from(full);
+      if(chars.length){
+        const pieces = [];
+        chars.forEach((ch, idx)=>{
+          if(!ch) return;
+          let entry = null;
+          try{
+            if(typeof QIMING_CHAR_DB !== 'undefined'){
+              entry = QIMING_CHAR_DB[ch];
+            }
+          }catch(e){}
+          if(entry){
+            const stroke = entry.stroke;
+            const wx = entry.wuxing || '未标五行';
+            const mean = entry.mean || '';
+            let seg = `${ch}：${stroke}画 · ${wx}`;
+            if(mean){
+              seg += ` · ${mean}`;
+            }
+            pieces.push(seg);
+          }else{
+            pieces.push(`${ch}：当前字库未收录，可自行补充五行与释义。`);
+          }
+        });
+        if(pieces.length){
+          text = pieces.join('； ');
+        }
+      }
+    }catch(e){}
+    els.nameCharMeta.textContent = text;
+  }
+
   if(els.nameResultCard){
     els.nameResultCard.style.display = 'block';
   }
@@ -300,6 +336,7 @@ function resetNameModule(){
   if(els.nameScoreVal) els.nameScoreVal.textContent = '-';
   if(els.nameScoreText) els.nameScoreText.textContent = '用于你做古书数理对照与灵感筛选，不作现实定论。';
   if(els.nameShuLiRef) els.nameShuLiRef.textContent = '暂无 81 数理参考。请先完成一次五格计算。';
+  if(els.nameCharMeta) els.nameCharMeta.textContent = '暂未加载字库信息。请先完成一次五格计算。';
   if(els.nameResultCard) els.nameResultCard.style.display = 'none';
   renderNameStrokeInputs();
 }
