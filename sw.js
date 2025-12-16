@@ -1,7 +1,7 @@
 // bazi PWA service worker
 // 版本号策略：每次你更新 index/app/styles 或新增模块时
 // 只要改一下 VERSION（或直接改 CACHE_NAME）即可强制所有设备拉取新缓存。
-const VERSION = "2025-12-12-02";
+const VERSION = "2025-12-16-01";
 const CACHE_NAME = `bazi-tool-${VERSION}`;
 
 const CORE_ASSETS = [
@@ -57,6 +57,32 @@ self.addEventListener("fetch", (event) => {
   if (url.origin !== self.location.origin) {
     return;
   }
+
+  // qiming_patch.json：网络优先（热更新），失败再回退缓存；不参与预缓存
+  if (url.pathname.endsWith("/qiming_patch.json") || url.pathname.endsWith("qiming_patch.json")) {
+    event.respondWith(
+      fetch(req)
+        .then((res) => {
+          if (res && res.ok) {
+            const resClone = res.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(req, resClone));
+          }
+          return res;
+        })
+        .catch(() =>
+          caches.match(req).then((cached) => {
+            return (
+              cached ||
+              new Response('{"chars":{}}', {
+                headers: { "Content-Type": "application/json" },
+              })
+            );
+          })
+        )
+    );
+    return;
+  }
+
 
   event.respondWith(
     caches.match(req).then((cached) => {

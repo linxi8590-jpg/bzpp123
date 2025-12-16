@@ -1296,3 +1296,21 @@ body.group-ui.module-open .module-topbar{
       font-size: 12px;
       line-height: 1.4;
     }
+
+/* 启明 · 缺字反馈 */
+.muted{
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+.missing-box{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+}
+button.small{
+  padding: 8px 10px;
+  font-size: 12px;
+  line-height: 1;
+}

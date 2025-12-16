@@ -141,6 +141,8 @@
     nameSurnameLen: document.getElementById('nameSurnameLen'),
     nameGivenLen: document.getElementById('nameGivenLen'),
     nameStrokeInputs: document.getElementById('nameStrokeInputs'),
+    nameMissingText: document.getElementById('nameMissingText'),
+    copyMissingBtn: document.getElementById('copyMissingBtn'),
     calcNameBtn: document.getElementById('calcNameBtn'),
     resetNameBtn: document.getElementById('resetNameBtn'),
     nameResultCard: document.getElementById('nameResultCard'),

@@ -46,6 +46,58 @@ function setStrokeForChar(ch, n){
   }catch(e){}
 }
 
+
+
+/* 启明 · 共享字库补丁（热更新入口：qiming_patch.json） */
+function mergeQimingPatch(patch){
+  try{
+    if(!patch) return;
+    const map = (patch.chars && typeof patch.chars === 'object') ? patch.chars : patch;
+    if(!map || typeof map !== 'object') return;
+
+    Object.keys(map).forEach((ch)=>{
+      if(!ch) return;
+      const entry = map[ch];
+      if(!entry || typeof entry !== 'object') return;
+
+      // 合并到启明字库（五行/释义/笔画等）
+      try{
+        if(typeof QIMING_CHAR_DB !== 'undefined'){
+          QIMING_CHAR_DB[ch] = Object.assign({}, (QIMING_CHAR_DB[ch] || {}), entry);
+        }
+      }catch(e){}
+
+      // 同步笔画表（用于自动带出）
+      if(entry.stroke){
+        const n = Number(entry.stroke);
+        if(Number.isFinite(n) && n > 0){
+          try{
+            if(typeof STROKE_DB !== 'undefined') STROKE_DB[ch] = Math.round(n);
+          }catch(e){}
+        }
+      }
+    });
+  }catch(e){}
+}
+
+async function loadRemoteQimingPatch(){
+  // 只要同源有这个文件就能拉到（GitHub Pages / Cloudflare Pages 都可）
+  try{
+    const res = await fetch('./qiming_patch.json', { cache: 'no-store' });
+    if(!res || !res.ok) return;
+    const obj = await res.json();
+    mergeQimingPatch(obj);
+    // 如当前已经渲染了输入框/结果，补丁加载后刷新一下显示
+    try{
+      renderNameStrokeInputs();
+      if(els && els.nameResultCard && els.nameResultCard.style.display !== 'none'){
+        const r = computeFiveGrid();
+        if(r) renderFiveGridResult(r);
+      }
+    }catch(e){}
+  }catch(e){}
+}
+
 function autoInferNameLens(full){
   const len = Array.from(full).length;
   if(len <= 1) return { sLen:1, gLen:2 };
@@ -68,6 +120,7 @@ function renderNameStrokeInputs(){
 
   const list = ok ? [...surname, ...given] : Array.from(full).slice(0, sLen + gLen);
   const totalBoxes = sLen + gLen;
+  const missingChars = [];
 
   for(let i=0;i<totalBoxes;i++){
     const isSurnamePos = i < sLen;
@@ -89,6 +142,7 @@ function renderNameStrokeInputs(){
 
     const isRealChar = ch && ch !== '姓' && ch !== '名';
     const autoStroke = isRealChar ? getStrokeForChar(ch) : null;
+    if(!autoStroke && isRealChar) missingChars.push(ch);
 
     if(autoStroke){
       input.value = String(autoStroke);
@@ -113,6 +167,22 @@ function renderNameStrokeInputs(){
     box.appendChild(label);
     box.appendChild(input);
     container.appendChild(box);
+
+  try{
+    const miss = Array.from(new Set(missingChars)).filter(Boolean);
+    if(els.nameMissingText){
+      if(miss.length){
+        els.nameMissingText.textContent = `未收录字：${miss.join(' ')}（可手动补笔画；也可点右侧“复制反馈”发给我）`;
+      }else{
+        els.nameMissingText.textContent = '暂无缺字。';
+      }
+    }
+    if(els.copyMissingBtn){
+      els.copyMissingBtn.style.display = miss.length ? 'inline-flex' : 'none';
+      els.copyMissingBtn.dataset.missing = miss.join('');
+    }
+  }catch(e){}
+
   }
 }
 
@@ -337,12 +407,16 @@ function resetNameModule(){
   if(els.nameScoreText) els.nameScoreText.textContent = '用于你做古书数理对照与灵感筛选，不作现实定论。';
   if(els.nameShuLiRef) els.nameShuLiRef.textContent = '暂无 81 数理参考。请先完成一次五格计算。';
   if(els.nameCharMeta) els.nameCharMeta.textContent = '暂未加载字库信息。请先完成一次五格计算。';
+  if(els.nameMissingText) els.nameMissingText.textContent = '暂无缺字。';
+  if(els.copyMissingBtn){ els.copyMissingBtn.style.display = 'none'; els.copyMissingBtn.dataset.missing = ''; }
   if(els.nameResultCard) els.nameResultCard.style.display = 'none';
   renderNameStrokeInputs();
 }
 
 function setupNameModule(){
   if(window.__nameModuleWired) return;
+  // 先拉一次共享字库补丁（用于你更新仓库后朋友同步）
+  try{ loadRemoteQimingPatch(); }catch(e){}
   if(!els.nameFullInput || !els.calcNameBtn) return;
 
   let nameLenManual = false;
@@ -373,6 +447,29 @@ function setupNameModule(){
     nameLenManual = true;
     renderNameStrokeInputs();
   });
+
+
+  if(els.copyMissingBtn){
+    els.copyMissingBtn.addEventListener('click', async ()=>{
+      const miss = (els.copyMissingBtn.dataset.missing || '').trim();
+      if(!miss){
+        toast('暂无缺字～');
+        return;
+      }
+      const full = normalizeNameStr(els.nameFullInput ? els.nameFullInput.value : '');
+      const msg = `【启明缺字反馈】\n姓名：${full || '(未填)'}\n缺字：${Array.from(miss).join(' ')}\n（请在 qiming_patch.json / data.js 补录：笔画/五行/释义）`;
+      try{
+        if(navigator.clipboard && navigator.clipboard.writeText){
+          await navigator.clipboard.writeText(msg);
+          toast('已复制反馈～发给林曦就行。');
+        }else{
+          toast(msg);
+        }
+      }catch(e){
+        toast(msg);
+      }
+    });
+  }
 
   els.calcNameBtn.addEventListener('click', ()=>{
     const res = computeFiveGrid();
