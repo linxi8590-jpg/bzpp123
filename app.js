@@ -3388,7 +3388,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   
-  const UI_VERSION = "v12.2-2025-12-10-07";
+  const UI_VERSION = "v12.3-2025-12-17-01";
 
   function initMeTools() {
     const uiEl = qs("#uiVersion");
