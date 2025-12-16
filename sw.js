@@ -1,7 +1,7 @@
 // bazi PWA service worker
 // 版本号策略：每次你更新 index/app/styles 或新增模块时
 // 只要改一下 VERSION（或直接改 CACHE_NAME）即可强制所有设备拉取新缓存。
-const VERSION = "2025-12-17-01";
+const VERSION = "2025-12-17-02";
 const CACHE_NAME = `bazi-tool-${VERSION}`;
 
 const CORE_ASSETS = [
@@ -57,6 +57,60 @@ self.addEventListener("fetch", (event) => {
   if (url.origin !== self.location.origin) {
     return;
   }
+
+  // 特例：启明补丁字库需要“热更新”
+  // - 在线：优先拉最新并写入缓存（用无 query 的 canonical key 防止缓存膨胀）
+  // - 离线：回退到缓存
+  const path = url.pathname || "";
+  const isQimingPatch = path.endsWith("/qiming_patch.json") || path.endsWith("qiming_patch.json");
+  const isPatchEditor =
+    path.endsWith("/patch-editor.html") ||
+    path.endsWith("/patch-editor.js") ||
+    path.endsWith("/patch-editor.css");
+
+  if (isQimingPatch) {
+    event.respondWith(
+      (async () => {
+        const keyReq = new Request(url.origin + url.pathname, { method: "GET" });
+        try {
+          const res = await fetch(req, { cache: "no-store" });
+          if (res && res.status === 200 && res.type === "basic") {
+            const resClone = res.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(keyReq, resClone));
+          }
+          return res;
+        } catch (e) {
+          const cached = await caches.match(keyReq);
+          if (cached) return cached;
+          throw e;
+        }
+      })()
+    );
+    return;
+  }
+
+  // 特例：补丁编辑器尽量走网络，避免老版本页面被缓存“卡住”
+  if (isPatchEditor) {
+    event.respondWith(
+      (async () => {
+        const keyReq = new Request(url.origin + url.pathname, { method: "GET" });
+        try {
+          const res = await fetch(req, { cache: "no-store" });
+          if (res && res.status === 200 && res.type === "basic") {
+            const resClone = res.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(keyReq, resClone));
+          }
+          return res;
+        } catch (e) {
+          const cached = await caches.match(keyReq);
+          if (cached) return cached;
+          throw e;
+        }
+      })()
+    );
+    return;
+  }
+
 
   // qiming_patch.json：网络优先（热更新），失败再回退缓存；不参与预缓存
   if (url.pathname.endsWith("/qiming_patch.json") || url.pathname.endsWith("qiming_patch.json")) {

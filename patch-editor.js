@@ -309,7 +309,7 @@
   }
 
   async function loadRemote(){
-    const r = await fetch('./qiming_patch.json', { cache:'no-store' });
+    const r = await fetch(`./qiming_patch.json?ts=${Date.now()}`, { cache:'no-store' });
     if (!r.ok) throw new Error('未找到 qiming_patch.json（先在仓库根目录放一个）');
     const obj = await r.json();
     const norm = normalize(obj);

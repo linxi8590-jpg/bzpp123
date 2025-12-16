@@ -83,7 +83,7 @@ function mergeQimingPatch(patch){
 async function loadRemoteQimingPatch(){
   // 只要同源有这个文件就能拉到（GitHub Pages / Cloudflare Pages 都可）
   try{
-    const res = await fetch('./qiming_patch.json', { cache: 'no-store' });
+    const res = await fetch(`./qiming_patch.json?ts=${Date.now()}`, { cache: 'no-store' });
     if(!res || !res.ok) return;
     const obj = await res.json();
     mergeQimingPatch(obj);
