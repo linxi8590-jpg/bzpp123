@@ -1314,3 +1314,42 @@ button.small{
   font-size: 12px;
   line-height: 1;
 }
+
+
+/* 我的 · 启明字库补丁编辑器（内嵌） */
+.pe-wrap{
+  margin-top: 10px;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+.pe-row{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+}
+.pe-label{
+  font-size:12px;
+  color: var(--muted);
+}
+.pe-ta{
+  width:100%;
+  min-height: 120px;
+  resize: vertical;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(0,0,0,.12);
+  color: var(--text);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size: 12px;
+  line-height: 1.45;
+}
+.pe-status{
+  font-size:12px;
+  padding: 8px 10px;
+  border: 1px dashed var(--line);
+  border-radius: 12px;
+  opacity: .9;
+}
+

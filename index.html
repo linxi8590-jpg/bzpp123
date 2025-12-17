@@ -119,6 +119,39 @@
               iOS 若出现页面不更新，可优先使用“清理缓存并刷新”。该操作仅清理本工具缓存，不影响其他网站。
             </div>
           </div>
+
+
+          <div class="card me-card" id="mePatchEditorCard">
+            <div class="section-title">启明字库补丁编辑器</div>
+            <div class="hint small-hint">
+              用于将 Gemini 输出的字库内容自动清洗、去重并合并到 <span class="mono">qiming_patch.json</span>。
+              输出内容可直接覆盖仓库同名文件（根目录）。
+            </div>
+
+            <div class="pe-wrap">
+              <div class="pe-row">
+                <button class="btn secondary" id="peLoadBase" type="button">读取仓库补丁</button>
+                <button class="btn secondary" id="peClearAll" type="button">清空</button>
+              </div>
+
+              <div class="pe-label">粘贴（或导入）Gemini 输出：</div>
+              <textarea class="pe-ta" id="peInput" placeholder='支持：{"chars":{...}} / {"字":{...}} / [{"char":"字",...},...] / 多段 {..},{..} 组合'></textarea>
+
+              <div class="pe-row">
+                <button class="btn" id="peMerge" type="button">清洗 + 合并 + 去重</button>
+              </div>
+
+              <div class="pe-label">输出（可直接覆盖 qiming_patch.json）：</div>
+              <textarea class="pe-ta" id="peOutput" readonly placeholder="点击上方“清洗 + 合并 + 去重”生成输出"></textarea>
+
+              <div class="pe-row">
+                <button class="btn secondary" id="peCopyOut" type="button">复制输出</button>
+                <button class="btn secondary" id="peDownloadOut" type="button">下载 qiming_patch.json</button>
+              </div>
+
+              <div class="pe-status mono" id="peStatus">未读取补丁</div>
+            </div>
+          </div>
         </div>
 
           <div class="empty-desc">后续可以放：主题、收藏、数据导入导出、个性设置等。</div>

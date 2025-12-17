@@ -3388,9 +3388,235 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   
-  const UI_VERSION = "v12.3-2025-12-17-02";
+  const UI_VERSION = "v12.3-2025-12-17-03";
 
-  function initMeTools() {
+  
+  // ------------------------------
+  // 我的 · 启明字库补丁编辑器（内嵌版）
+  // 目标：清洗/去重/合并并导出 qiming_patch.json（热更新）
+  // ------------------------------
+  function initMePatchEditor() {
+    const loadBtn = qs("#peLoadBase");
+    const clearBtn = qs("#peClearAll");
+    const mergeBtn = qs("#peMerge");
+    const copyBtn = qs("#peCopyOut");
+    const dlBtn = qs("#peDownloadOut");
+    const inputEl = qs("#peInput");
+    const outEl = qs("#peOutput");
+    const statusEl = qs("#peStatus");
+
+    // 若页面没有该模块（旧版 HTML），直接跳过
+    if (!statusEl || !inputEl || !outEl) return;
+
+    let base = { chars: {} };
+
+    function setStatus(text) {
+      statusEl.textContent = text;
+    }
+
+    function stripFences(s) {
+      return String(s || "")
+        .replace(/^\uFEFF/, "")
+        .replace(/```[a-zA-Z]*\s*/g, "")
+        .replace(/```/g, "");
+    }
+
+    function removeTrailingCommas(s) {
+      // 允许用户粘贴“最后多一个逗号”的内容
+      return s.replace(/,\s*([}\]])/g, "$1");
+    }
+
+    function cleanEntry(v) {
+      if (!v || typeof v !== "object") return {};
+      const out = {};
+      const stroke = Number.parseInt(v.stroke ?? v.strokes ?? v.bihua ?? v["笔画"] ?? v["画数"] ?? "", 10);
+      if (Number.isFinite(stroke) && stroke > 0) out.stroke = stroke;
+      const wx = String(v.wuxing ?? v.wx ?? v["五行"] ?? "").trim();
+      if (wx) out.wuxing = wx.slice(0, 1);
+      const mean = String(v.mean ?? v.desc ?? v["释义"] ?? v.meaning ?? "").trim();
+      if (mean) out.mean = mean;
+      return out;
+    }
+
+    function normalizeToChars(obj) {
+      if (!obj) return {};
+      // { chars: {...} }
+      if (obj.chars && typeof obj.chars === "object" && !Array.isArray(obj.chars)) return obj.chars;
+
+      // array: [{char:"字",...}, ...]
+      if (Array.isArray(obj)) {
+        const chars = {};
+        for (const it of obj) {
+          const ch = String(it?.char ?? it?.["字"] ?? it?.["汉字"] ?? "").trim();
+          if (!ch) continue;
+          chars[ch] = cleanEntry(it);
+        }
+        return chars;
+      }
+
+      // plain object: {"锦": {...}, ...}
+      if (typeof obj === "object") return obj;
+
+      return {};
+    }
+
+    function tryParseAny(text) {
+      let s = stripFences(text).trim();
+      if (!s) return { chars: {}, parsed: true, mode: "empty" };
+
+      // 如果是纯键值对块（没有外层 {} 或 []），补上 {}
+      if (!s.startsWith("{") && !s.startsWith("[") && /"\s*[^"]+"\s*:/.test(s)) {
+        s = "{" + s + "}";
+      }
+
+      // 如果是多段 {..},{..} 且包含 "char":，补上 []
+      if (!s.startsWith("[") && /"char"\s*:/.test(s) && s.includes("{")) {
+        s = "[" + s + "]";
+      }
+
+      // 常见粘贴噪声清理
+      s = s.replace(/}\s*,\s*,\s*{/g, "},{");
+      s = s.replace(/,\s*,/g, ",");
+      s = removeTrailingCommas(s);
+
+      // 尝试 JSON.parse
+      try {
+        const obj = JSON.parse(s);
+        const chars = normalizeToChars(obj);
+
+        // 如果 normalize 出来仍不是 chars 字典，尝试再包一层
+        if (!chars || typeof chars !== "object" || Array.isArray(chars)) {
+          return { chars: {}, parsed: false, error: "不是可识别的字库结构" };
+        }
+
+        // clean each entry
+        const cleaned = {};
+        for (const [k, v] of Object.entries(chars)) {
+          const key = String(k || "").trim();
+          if (!key) continue;
+          const entry = cleanEntry(v);
+          if (Object.keys(entry).length) cleaned[key] = entry;
+          else if (typeof v === "number") cleaned[key] = { stroke: Number.parseInt(v, 10) }; // 兼容 {"字": 12}
+        }
+        return { chars: cleaned, parsed: true, mode: "json" };
+      } catch (e) {
+        return { chars: {}, parsed: false, error: String(e?.message || e) };
+      }
+    }
+
+    function stableStringify(charsObj) {
+      const keys = Object.keys(charsObj || {}).sort((a, b) => a.localeCompare(b, "zh-Hans"));
+      const out = { chars: {} };
+      for (const k of keys) out.chars[k] = cleanEntry(charsObj[k]);
+      return JSON.stringify(out, null, 2);
+    }
+
+    async function loadBase() {
+      setStatus("读取中…");
+      try {
+        const url = "./qiming_patch.json?v=" + Date.now(); // cache buster
+        const res = await fetch(url, { cache: "no-store" });
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        const obj = await res.json();
+        base = { chars: normalizeToChars(obj) };
+        // 清洗一次
+        base.chars = Object.fromEntries(
+          Object.entries(base.chars || {}).map(([k, v]) => [k, cleanEntry(v)])
+        );
+        const n = Object.keys(base.chars || {}).length;
+        setStatus(`已读取仓库补丁：${n} 字`);
+      } catch (e) {
+        base = { chars: {} };
+        setStatus("读取失败：" + (e?.message || e));
+      }
+    }
+
+    function clearAll() {
+      base = { chars: {} };
+      if (inputEl) inputEl.value = "";
+      if (outEl) outEl.value = "";
+      setStatus("已清空（未读取补丁）");
+    }
+
+    function mergeAndExport() {
+      const baseCountBefore = Object.keys(base.chars || {}).length;
+
+      const parsed = tryParseAny(inputEl.value);
+      if (!parsed.parsed) {
+        setStatus("解析失败：" + (parsed.error || "未知错误"));
+        return;
+      }
+
+      const incoming = parsed.chars || {};
+      const inKeys = Object.keys(incoming);
+      let conflicts = 0;
+
+      for (const k of inKeys) {
+        if (base.chars[k]) conflicts += 1;
+        const merged = { ...(base.chars[k] || {}), ...(incoming[k] || {}) };
+        base.chars[k] = cleanEntry(merged);
+      }
+
+      const out = stableStringify(base.chars);
+      outEl.value = out;
+
+      const outCount = Object.keys(base.chars || {}).length;
+      const added = outCount - baseCountBefore;
+      setStatus(`合并完成：输入 ${inKeys.length} 字；覆盖 ${conflicts}；新增 ${Math.max(0, added)}；总计 ${outCount}`);
+    }
+
+    async function copyOut() {
+      const text = outEl.value.trim();
+      if (!text) {
+        setStatus("没有输出内容可复制（先点“清洗 + 合并 + 去重”）");
+        return;
+      }
+      try {
+        await navigator.clipboard.writeText(text);
+        setStatus("已复制到剪贴板 ✅");
+      } catch (e) {
+        // fallback
+        try {
+          outEl.focus();
+          outEl.select();
+          document.execCommand("copy");
+          setStatus("已复制到剪贴板 ✅");
+        } catch (e2) {
+          setStatus("复制失败：" + (e2?.message || e2));
+        }
+      }
+    }
+
+    function downloadOut() {
+      const text = outEl.value.trim();
+      if (!text) {
+        setStatus("没有输出内容可下载（先点“清洗 + 合并 + 去重”）");
+        return;
+      }
+      const blob = new Blob([text], { type: "application/json;charset=utf-8" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "qiming_patch.json";
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => {
+        URL.revokeObjectURL(a.href);
+        a.remove();
+      }, 0);
+      setStatus("已生成下载文件 ✅（覆盖仓库 qiming_patch.json）");
+    }
+
+    if (loadBtn) loadBtn.addEventListener("click", loadBase);
+    if (clearBtn) clearBtn.addEventListener("click", clearAll);
+    if (mergeBtn) mergeBtn.addEventListener("click", mergeAndExport);
+    if (copyBtn) copyBtn.addEventListener("click", copyOut);
+    if (dlBtn) dlBtn.addEventListener("click", downloadOut);
+
+    // 初始状态：不自动拉取，避免误触；用户点“读取仓库补丁”再合并
+    setStatus("未读取补丁（建议先点“读取仓库补丁”）");
+  }
+
+function initMeTools() {
     const uiEl = qs("#uiVersion");
     const cacheEl = qs("#cacheVersion");
     const buildEl = qs("#buildTime");
@@ -3443,7 +3669,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       });
     }
-  }
+  
+
+    // 内嵌补丁编辑器（在“我的”页）
+    initMePatchEditor();
+}
 
 function initGroupUI() {
     if (!qs("#groupViews") || !qs("#bottomNav")) return;
