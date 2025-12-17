@@ -3388,7 +3388,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   
-  const UI_VERSION = "v12.3-2025-12-17-04";
+  const UI_VERSION = "v12.3-2025-12-17-05";
 
   
   // ------------------------------
@@ -3905,6 +3905,7 @@ function initMeTools() {
 
     const softBtn = qs("#btnSoftReload");
     const hardBtn = qs("#btnHardRefresh");
+    const nukeBtn = qs("#btnNukeUpdate");
 
     if (softBtn) {
       softBtn.addEventListener("click", () => {
@@ -3914,29 +3915,104 @@ function initMeTools() {
 
     if (hardBtn) {
       hardBtn.addEventListener("click", async () => {
-        try {
-          if ("serviceWorker" in navigator) {
-            const regs = await navigator.serviceWorker.getRegistrations();
-            await Promise.all(regs.map(r => r.update().catch(()=>null)));
-          }
-
-          if (window.caches) {
-            const keys = await caches.keys();
-            await Promise.all(keys.filter(k => k.startsWith("bazi-tool-") || k.startsWith("bazi-pwa-") || k.startsWith("bazi"))
-              .map(k => caches.delete(k)));
-          }
-        } catch (e) {
-          // 忽略错误，继续刷新
-        } finally {
-          // 强制带参数刷新，绕过 CDN/浏览器缓存
+        const bustReload = () => {
           const v = Date.now();
           const url = new URL(location.href);
           url.searchParams.set("v", String(v));
           location.href = url.toString();
+        };
+
+        const waitControllerChange = () => {
+          if (!("serviceWorker" in navigator)) return Promise.resolve(false);
+          return new Promise((resolve) => {
+            let done = false;
+            const onChange = () => {
+              done = true;
+              resolve(true);
+            };
+            navigator.serviceWorker.addEventListener("controllerchange", onChange, { once: true });
+            // iOS 有时不触发，给个短超时兜底
+            setTimeout(() => { if (!done) resolve(false); }, 1600);
+          });
+        };
+
+        try {
+          // 1) 强制检查更新
+          const controllerP = waitControllerChange();
+
+          if ("serviceWorker" in navigator) {
+            const regs = await navigator.serviceWorker.getRegistrations();
+
+            await Promise.all(regs.map(r => r.update().catch(() => null)));
+
+            // 2) 若存在 waiting，则尝试立刻接管
+            const trySkip = (sw) => {
+              try {
+                sw && sw.postMessage({ type: "SKIP_WAITING" });
+              } catch(e) {}
+            };
+
+            regs.forEach((r) => {
+              if (r.waiting) trySkip(r.waiting);
+
+              if (r.installing) {
+                const installing = r.installing;
+                installing.addEventListener("statechange", () => {
+                  if (installing.state === "installed" && r.waiting) {
+                    trySkip(r.waiting);
+                  }
+                });
+              }
+            });
+
+            // 3) 等待接管或短暂等待后继续刷新
+            await Promise.race([controllerP, new Promise(res => setTimeout(res, 900))]);
+          }
+
+          // 清理本工具的缓存（仅本域名）
+          if (window.caches) {
+            const keys = await caches.keys();
+            await Promise.all(keys.map(k => caches.delete(k)));
+          }
+        } catch (e) {
+          // 忽略错误，继续刷新
+        } finally {
+          bustReload();
         }
       });
     }
   
+
+
+    if (nukeBtn) {
+      nukeBtn.addEventListener("click", async () => {
+        const bustReload = () => {
+          const v = Date.now();
+          const url = new URL(location.href);
+          url.searchParams.set("v", String(v));
+          url.searchParams.set("reinstall", "1");
+          location.href = url.toString();
+        };
+
+        try {
+          // 删除本工具所有缓存（仅本域名）
+          if (window.caches) {
+            const keys = await caches.keys();
+            await Promise.all(keys.map(k => caches.delete(k)));
+          }
+
+          // 注销 SW，下一次加载会重新注册
+          if ("serviceWorker" in navigator) {
+            const regs = await navigator.serviceWorker.getRegistrations();
+            await Promise.all(regs.map(r => r.unregister().catch(() => null)));
+          }
+        } catch(e) {
+          // 忽略错误，继续刷新
+        } finally {
+          bustReload();
+        }
+      });
+    }
 
     // 内嵌补丁编辑器（在“我的”页）
     initMePatchEditor();
