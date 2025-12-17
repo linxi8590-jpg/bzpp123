@@ -1353,3 +1353,30 @@ button.small{
   opacity: .9;
 }
 
+/* Patch Editor (embedded) additions */
+.pe-form{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+}
+.pe-input{
+  flex: 1 1 90px;
+  max-width: 140px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: rgba(0,0,0,.12);
+  color: var(--text);
+  font-size: 14px;
+}
+.pe-input::placeholder{ color: rgba(255,255,255,.45); }
+.pe-mean{ min-height: 64px; }
+.pe-manual{
+  font-size:12px;
+  padding: 8px 10px;
+  border: 1px dashed var(--line);
+  border-radius: 12px;
+  opacity: .95;
+  white-space: pre-wrap;
+}
+

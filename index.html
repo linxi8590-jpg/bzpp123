@@ -134,6 +134,27 @@
                 <button class="btn secondary" id="peClearAll" type="button">清空</button>
               </div>
 
+              <div class="pe-label">手动添加单字（会参与合并去重）：</div>
+              <div class="pe-form">
+                <input class="pe-input" id="peChar" maxlength="1" placeholder="字" />
+                <select class="pe-input" id="peWuxing">
+                  <option value="">五行</option>
+                  <option value="金">金</option>
+                  <option value="木">木</option>
+                  <option value="水">水</option>
+                  <option value="火">火</option>
+                  <option value="土">土</option>
+                </select>
+                <input class="pe-input" id="peStroke" type="number" min="1" max="60" placeholder="笔画" />
+              </div>
+              <textarea class="pe-ta pe-mean" id="peMean" placeholder="寓意（可选）"></textarea>
+              <div class="pe-row">
+                <button class="btn secondary" id="peAddChar" type="button">添加到手动列表</button>
+                <button class="btn secondary" id="peClearManual" type="button">清空手动</button>
+              </div>
+              <div class="pe-manual mono" id="peManualList">手动列表：空</div>
+
+
               <div class="pe-label">粘贴（或导入）Gemini 输出：</div>
               <textarea class="pe-ta" id="peInput" placeholder='支持：{"chars":{...}} / {"字":{...}} / [{"char":"字",...},...] / 多段 {..},{..} 组合'></textarea>
 
