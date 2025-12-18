@@ -3388,7 +3388,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   
-  const UI_VERSION = "v12.3-2025-12-17-05";
+  const UI_VERSION = "v12.3-2025-12-17-06";
 
   
   // ------------------------------
@@ -3889,11 +3889,11 @@ function initMeTools() {
     const buildEl = qs("#buildTime");
     if (uiEl) uiEl.textContent = UI_VERSION;
 
-    // 尝试从 SW 或本地标记读取缓存版本
+    // 尝试从本地标记读取版本（仅用于展示兜底）
     try {
       const stored = localStorage.getItem("bazi_ui_version");
       if (!stored) localStorage.setItem("bazi_ui_version", UI_VERSION);
-    } catch(e) {}
+    } catch (e) {}
 
     if (buildEl) buildEl.textContent = UI_VERSION.replace("v", "");
 
@@ -3907,6 +3907,63 @@ function initMeTools() {
     const hardBtn = qs("#btnHardRefresh");
     const nukeBtn = qs("#btnNukeUpdate");
 
+    const bustReload = () => {
+      const v = Date.now();
+      const url = new URL(location.href);
+      url.searchParams.set("v", String(v));
+      // 用 replace 避免历史堆积
+      location.replace(url.toString());
+    };
+
+    const waitControllerChange = (timeoutMs = 1600) => {
+      if (!("serviceWorker" in navigator)) return Promise.resolve(false);
+      return new Promise((resolve) => {
+        let done = false;
+        const finish = (val) => {
+          if (done) return;
+          done = true;
+          resolve(val);
+        };
+        const onChange = () => finish(true);
+        navigator.serviceWorker.addEventListener("controllerchange", onChange, { once: true });
+        // iOS 有时不触发，给超时兜底
+        setTimeout(() => finish(false), timeoutMs);
+      });
+    };
+
+    const deleteAllCaches = async () => {
+      if (!window.caches) return;
+      const keys = await caches.keys();
+      await Promise.all(keys.map((k) => caches.delete(k)));
+    };
+
+    const tryUpdateAndActivateSW = async () => {
+      if (!("serviceWorker" in navigator)) return;
+      try {
+        // 优先更新当前注册
+        const reg = await navigator.serviceWorker.getRegistration();
+        if (reg) {
+          try { await reg.update(); } catch (e) {}
+          // 若有 waiting，主动让其立刻接管
+          const postSkip = (sw) => {
+            try { sw && sw.postMessage && sw.postMessage("SKIP_WAITING"); } catch (e) {}
+          };
+          if (reg.waiting) postSkip(reg.waiting);
+          if (reg.installing) {
+            reg.installing.addEventListener("statechange", () => {
+              try {
+                if (reg.installing.state === "installed" && reg.waiting) postSkip(reg.waiting);
+              } catch (e) {}
+            });
+          }
+        } else if (navigator.serviceWorker.getRegistrations) {
+          // 兜底：尝试更新所有注册
+          const regs = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(regs.map((r) => r.update().catch(() => null)));
+        }
+      } catch (e) {}
+    };
+
     if (softBtn) {
       softBtn.addEventListener("click", () => {
         location.reload();
@@ -3915,65 +3972,13 @@ function initMeTools() {
 
     if (hardBtn) {
       hardBtn.addEventListener("click", async () => {
-        const bustReload = () => {
-          const v = Date.now();
-          const url = new URL(location.href);
-          url.searchParams.set("v", String(v));
-          location.href = url.toString();
-        };
-
-        const waitControllerChange = () => {
-          if (!("serviceWorker" in navigator)) return Promise.resolve(false);
-          return new Promise((resolve) => {
-            let done = false;
-            const onChange = () => {
-              done = true;
-              resolve(true);
-            };
-            navigator.serviceWorker.addEventListener("controllerchange", onChange, { once: true });
-            // iOS 有时不触发，给个短超时兜底
-            setTimeout(() => { if (!done) resolve(false); }, 1600);
-          });
-        };
-
         try {
-          // 1) 强制检查更新
-          const controllerP = waitControllerChange();
+          // 1) 先强制检查 SW 更新并尝试立刻接管
+          await tryUpdateAndActivateSW();
+          await waitControllerChange();
 
-          if ("serviceWorker" in navigator) {
-            const regs = await navigator.serviceWorker.getRegistrations();
-
-            await Promise.all(regs.map(r => r.update().catch(() => null)));
-
-            // 2) 若存在 waiting，则尝试立刻接管
-            const trySkip = (sw) => {
-              try {
-                sw && sw.postMessage({ type: "SKIP_WAITING" });
-              } catch(e) {}
-            };
-
-            regs.forEach((r) => {
-              if (r.waiting) trySkip(r.waiting);
-
-              if (r.installing) {
-                const installing = r.installing;
-                installing.addEventListener("statechange", () => {
-                  if (installing.state === "installed" && r.waiting) {
-                    trySkip(r.waiting);
-                  }
-                });
-              }
-            });
-
-            // 3) 等待接管或短暂等待后继续刷新
-            await Promise.race([controllerP, new Promise(res => setTimeout(res, 900))]);
-          }
-
-          // 清理本工具的缓存（仅本域名）
-          if (window.caches) {
-            const keys = await caches.keys();
-            await Promise.all(keys.map(k => caches.delete(k)));
-          }
+          // 2) 清理站点缓存（尽量清干净）
+          await deleteAllCaches();
         } catch (e) {
           // 忽略错误，继续刷新
         } finally {
@@ -3981,32 +3986,19 @@ function initMeTools() {
         }
       });
     }
-  
-
 
     if (nukeBtn) {
       nukeBtn.addEventListener("click", async () => {
-        const bustReload = () => {
-          const v = Date.now();
-          const url = new URL(location.href);
-          url.searchParams.set("v", String(v));
-          url.searchParams.set("reinstall", "1");
-          location.href = url.toString();
-        };
-
         try {
-          // 删除本工具所有缓存（仅本域名）
-          if (window.caches) {
-            const keys = await caches.keys();
-            await Promise.all(keys.map(k => caches.delete(k)));
-          }
+          // 1) 删除全部缓存
+          await deleteAllCaches();
 
-          // 注销 SW，下一次加载会重新注册
-          if ("serviceWorker" in navigator) {
+          // 2) 注销 SW（站内自助“重装”）
+          if ("serviceWorker" in navigator && navigator.serviceWorker.getRegistrations) {
             const regs = await navigator.serviceWorker.getRegistrations();
-            await Promise.all(regs.map(r => r.unregister().catch(() => null)));
+            await Promise.all(regs.map((r) => r.unregister().catch(() => null)));
           }
-        } catch(e) {
+        } catch (e) {
           // 忽略错误，继续刷新
         } finally {
           bustReload();
