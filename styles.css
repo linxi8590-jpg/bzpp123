@@ -1248,6 +1248,28 @@ body.group-ui.module-open .module-topbar{
   color: rgba(255,255,255,.55);
 }
 
+/* 运行异常提示（兜底自救） */
+.runtime-alert{
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,100,100,.22);
+  background: linear-gradient(135deg, rgba(255,100,100,.12), rgba(255,255,255,.02));
+  display: none;
+}
+.runtime-alert.show{ display: block; }
+.runtime-alert-title{
+  font-size: 12px;
+  font-weight: 700;
+  color: rgba(255,255,255,.92);
+}
+.runtime-alert-text{
+  margin-top: 6px;
+  font-size: 11px;
+  color: rgba(255,255,255,.70);
+}
+.runtime-alert-actions{ margin-top: 10px; }
+
 @media (max-width: 420px){
   .me-actions{
     grid-template-columns: 1fr;

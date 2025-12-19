@@ -1,13 +1,14 @@
 // bazi PWA service worker
 // 版本号策略：每次你更新 index/app/styles 或新增模块时
 // 只要改一下 VERSION（或直接改 CACHE_NAME）即可强制所有设备拉取新缓存。
-const VERSION = "2025-12-19-01";
+const VERSION = "2025-12-19-02";
 const CACHE_NAME = `bazi-tool-${VERSION}`;
 
 const CORE_ASSETS = [
   "./",
   "./index.html",
   "./styles.css",
+  "./boot.js",
   "./data.js",
   "./qiming.js",
   "./app.js",
@@ -45,6 +46,21 @@ self.addEventListener("message", (event) => {
   const data = event.data;
   if (data === "SKIP_WAITING" || (data && data.type === "SKIP_WAITING")) {
     self.skipWaiting();
+  }
+
+  // 向页面回传当前 SW 的版本号（用于“我的”页展示与自检）
+  if (data === "GET_VERSION" || (data && data.type === "GET_VERSION")) {
+    const payload = { type: "SW_VERSION", version: VERSION, cacheName: CACHE_NAME };
+    const reply = (client) => {
+      try { client && client.postMessage && client.postMessage(payload); } catch (e) {}
+    };
+    if (event.source) {
+      reply(event.source);
+      return;
+    }
+    if (event.clientId) {
+      self.clients.get(event.clientId).then(reply).catch(() => null);
+    }
   }
 });
 

@@ -3388,7 +3388,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   
-  const UI_VERSION = "v12.3-2025-12-19-01";
+  const UI_VERSION = "v12.3-2025-12-19-02";
 
   
   // ------------------------------
@@ -3703,6 +3703,14 @@ function initMeTools() {
     const hardBtn = qs("#btnHardRefresh");
     const nukeBtn = qs("#btnNukeUpdate");
 
+    // 若 boot.js 已经绑定过（兜底自救），这里不重复绑定，避免双触发
+    const alreadyBound = (btn) => {
+      try { return !!(btn && btn.dataset && btn.dataset.meBound === "1"); } catch (e) { return false; }
+    };
+    const markBound = (btn) => {
+      try { if (btn && btn.dataset) btn.dataset.meBound = "1"; } catch (e) {}
+    };
+
     const bustReload = () => {
       const v = Date.now();
       const url = new URL(location.href);
@@ -3760,13 +3768,14 @@ function initMeTools() {
       } catch (e) {}
     };
 
-    if (softBtn) {
+    if (softBtn && !alreadyBound(softBtn)) {
       softBtn.addEventListener("click", () => {
         location.reload();
       });
+      markBound(softBtn);
     }
 
-    if (hardBtn) {
+    if (hardBtn && !alreadyBound(hardBtn)) {
       hardBtn.addEventListener("click", async () => {
         try {
           // 1) 先强制检查 SW 更新并尝试立刻接管
@@ -3781,9 +3790,10 @@ function initMeTools() {
           bustReload();
         }
       });
+      markBound(hardBtn);
     }
 
-    if (nukeBtn) {
+    if (nukeBtn && !alreadyBound(nukeBtn)) {
       nukeBtn.addEventListener("click", async () => {
         try {
           // 1) 删除全部缓存
@@ -3800,6 +3810,7 @@ function initMeTools() {
           bustReload();
         }
       });
+      markBound(nukeBtn);
     }
 
     // 内嵌补丁编辑器（在“我的”页）

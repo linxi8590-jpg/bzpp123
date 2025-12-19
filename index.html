@@ -103,8 +103,24 @@
                 <span class="me-v mono" id="cacheVersion">-</span>
               </div>
               <div class="me-kv-row">
+                <span class="me-k">运行状态</span>
+                <span class="me-v mono" id="runtimeStatus">-</span>
+              </div>
+              <div class="me-kv-row">
+                <span class="me-k">最近错误</span>
+                <span class="me-v mono" id="runtimeErrorShort">-</span>
+              </div>
+              <div class="me-kv-row">
                 <span class="me-k">构建标记</span>
                 <span class="me-v mono" id="buildTime">-</span>
+              </div>
+            </div>
+
+            <div class="runtime-alert" id="runtimeAlert">
+              <div class="runtime-alert-title">检测到脚本异常</div>
+              <div class="runtime-alert-text">建议先点下面按钮：清缓存 + 刷新（不影响其他网站）。</div>
+              <div class="runtime-alert-actions">
+                <button class="btn" id="runtimeFixBtn" type="button">一键清缓存重载</button>
               </div>
             </div>
           </div>
@@ -645,6 +661,7 @@
     <div class="toast" id="toast"></div>
   </div>
 
+  <script src="./boot.js"></script>
   <script src="./data.js"></script>
   <script src="./qiming.js"></script>
   <script src="./app.js"></script>
