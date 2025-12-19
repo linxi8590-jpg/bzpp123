@@ -3388,9 +3388,13 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   
-  const UI_VERSION = "v12.3-2025-12-17-06";
+  const UI_VERSION = "v12.3-2025-12-19-01";
 
   
+  // ------------------------------
+  // 我的 · 启明字库补丁编辑器（内嵌版）
+  // 目标：清洗/去重/合并并导出 qiming_patch.json（热更新）
+  // ------------------------------
   // ------------------------------
   // 我的 · 启明字库补丁编辑器（内嵌版）
   // 目标：清洗/去重/合并并导出 qiming_patch.json（热更新）
@@ -3404,6 +3408,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const inputEl = qs("#peInput");
     const outEl = qs("#peOutput");
     const statusEl = qs("#peStatus");
+
     const charEl = qs("#peChar");
     const wuxingEl = qs("#peWuxing");
     const strokeEl = qs("#peStroke");
@@ -3412,15 +3417,108 @@ document.addEventListener('DOMContentLoaded', () => {
     const clearManualBtn = qs("#peClearManual");
     const manualListEl = qs("#peManualList");
 
-    let manualChars = {};
-
     // 若页面没有该模块（旧版 HTML），直接跳过
     if (!statusEl || !inputEl || !outEl) return;
 
     let base = { chars: {} };
+    let manualChars = {};
 
     function setStatus(text) {
-      statusEl.textContent = text;
+      statusEl.textContent = String(text || "");
+    }
+
+    function stripFences(s) {
+      let t = String(s || "").trim();
+      // ```json ... ``` 或 ``` ... ```
+      if (t.startsWith("```")) {
+        t = t.replace(/^```[a-zA-Z0-9_-]*\s*/m, "").replace(/```$/m, "").trim();
+      }
+      return t;
+    }
+    function escapeRegExp(str) {
+      return String(str || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+
+
+    function cleanEntry(v) {
+      // 允许：数字（笔画）/ {stroke,wuxing,mean}
+      if (typeof v === "number") {
+        const stroke = Number.parseInt(v, 10);
+        return Number.isFinite(stroke) && stroke > 0 ? { stroke } : {};
+      }
+      if (!v || typeof v !== "object") return {};
+
+      const out = {};
+      const stroke = Number.parseInt(v.stroke ?? v.strokes ?? v.bihua ?? v.bh ?? v.s, 10);
+      if (Number.isFinite(stroke) && stroke > 0) out.stroke = stroke;
+
+      const wuxing = String(v.wuxing ?? v.wx ?? "").trim();
+      if (wuxing) out.wuxing = wuxing;
+
+      const mean = String(v.mean ?? v.meaning ?? v.desc ?? "").trim();
+      if (mean) out.mean = mean;
+
+      return out;
+    }
+
+    function coerceToChars(obj) {
+      // 支持：{chars:{...}} / {...} / [{char:"字", stroke:..}, ...]
+      if (!obj) return {};
+      if (Array.isArray(obj)) {
+        const out = {};
+        for (const it of obj) {
+          if (!it) continue;
+          const ch = String(it.char ?? it.c ?? it.key ?? "").trim();
+          if (!ch || [...ch].length !== 1) continue;
+          const entry = cleanEntry(it);
+          if (Object.keys(entry).length) out[ch] = entry;
+        }
+        return out;
+      }
+      if (typeof obj !== "object") return {};
+      const maybeChars = obj.chars && typeof obj.chars === "object" && !Array.isArray(obj.chars) ? obj.chars : obj;
+      const out = {};
+      for (const [k, v] of Object.entries(maybeChars || {})) {
+        const key = String(k || "").trim();
+        if (!key) continue;
+        const entry = cleanEntry(v);
+        if (Object.keys(entry).length) out[key] = entry;
+        else if (typeof v === "number") out[key] = cleanEntry(v);
+      }
+      return out;
+    }
+
+    function parseTextToChars(text) {
+      const raw = stripFences(text);
+      if (!raw) return { chars: {}, ok: true, mode: "empty" };
+
+      try {
+        const obj = JSON.parse(raw);
+        return { chars: coerceToChars(obj), ok: true, mode: "json" };
+      } catch (e) {
+        // 宽松兜底：尝试从文本里抓取 "字": {...} 形式
+        const out = {};
+        const re = /"([^"]{1})"\s*:\s*\{[^}]*?\}/g;
+        let m;
+        while ((m = re.exec(raw))) {
+          const ch = m[1];
+          // 尝试把这个小对象单独 JSON.parse
+          const segRe = new RegExp(`"${escapeRegExp(ch)}"\\s*:\\s*(\\{[^}]*\\})`);
+          const m2 = segRe.exec(raw);
+          if (m2 && m2[1]) {
+            try {
+              const o = JSON.parse(m2[1]);
+              const entry = cleanEntry(o);
+              if (Object.keys(entry).length) out[ch] = entry;
+            } catch (_) {}
+          }
+        }
+        const keys = Object.keys(out);
+        if (keys.length) {
+          return { chars: out, ok: true, mode: "salvaged", warning: `整体 JSON 解析失败，已提取 ${keys.length} 条可用数据` };
+        }
+        return { chars: {}, ok: false, mode: "error", error: `JSON 解析失败：${String(e && e.message ? e.message : e)}` };
+      }
     }
 
     function updateManualList() {
@@ -3436,8 +3534,9 @@ document.addEventListener('DOMContentLoaded', () => {
         .map((k) => {
           const v = manualChars[k] || {};
           const parts = [];
-          if (v.wuxing) parts.push(v.wuxing);
           if (v.stroke) parts.push(`${v.stroke}画`);
+          if (v.wuxing) parts.push(v.wuxing);
+          if (v.mean) parts.push(v.mean);
           return `${k}(${parts.join(",") || "?"})`;
         })
         .join("  ");
@@ -3470,419 +3569,116 @@ document.addEventListener('DOMContentLoaded', () => {
       updateManualList();
 
       if (charEl) charEl.value = "";
-  function tryParseAny(text) {
-      let raw = normalizeLooseJson(stripFences(text)).trim();
-      if (!raw) return { chars: {}, parsed: true, mode: "empty" };
+      if (strokeEl) strokeEl.value = "";
+      if (wuxingEl) wuxingEl.value = "";
+      if (meanEl) meanEl.value = "";
 
-      // 如果用户粘贴的是 JS 片段（const X = {...};），尽量截出 JSON 主体
-      if (!raw.startsWith("{") && !raw.startsWith("[") && (raw.includes("{") || raw.includes("["))) {
-        const firstBrace = raw.search(/[\[{]/);
-        const lastBrace = Math.max(raw.lastIndexOf("}"), raw.lastIndexOf("]"));
-        if (firstBrace >= 0 && lastBrace > firstBrace) raw = raw.slice(firstBrace, lastBrace + 1).trim();
-      }
-
-      let s = raw;
-
-      // 如果是纯键值对块（没有外层 {} 或 []），补上 {}
-      if (!s.startsWith("{") && !s.startsWith("[") && /"\s*[^"]+"\s*:/.test(s)) {
-        s = "{" + s + "}";
-      }
-
-      // 如果是多段 {..},{..} 且包含 "char":，补上 []
-      if (!s.startsWith("[") && /"char"\s*:/.test(s) && s.includes("{")) {
-        s = "[" + s + "]";
-      }
-
-      // 常见粘贴噪声清理
-      s = s.replace(/}\s*,\s*,\s*{/g, "},{");
-      s = s.replace(/,\s*,/g, ",");
-      s = removeTrailingCommas(s);
-
-      // 尝试 JSON.parse（第一轮）
-      try {
-        const obj = JSON.parse(s);
-        const chars = normalizeToChars(obj);
-
-        if (!chars || typeof chars !== "object" || Array.isArray(chars)) {
-          return { chars: {}, parsed: false, error: "不是可识别的字库结构" };
-        }
-
-        const cleaned = {};
-        for (const [k, v] of Object.entries(chars)) {
-          const key = String(k || "").trim();
-          if (!key) continue;
-          const entry = cleanEntry(v);
-          if (Object.keys(entry).length) cleaned[key] = entry;
-          else if (typeof v === "number") cleaned[key] = { stroke: Number.parseInt(v, 10) };
-        }
-
-        return { chars: cleaned, parsed: true, mode: "json", repaired: s !== raw };
-      } catch (e1) {
-        // 兜底：从乱格式里提取有效条目（哪怕整体 JSON 已坏）
-        const salvaged = salvageCharPairs(s);
-        const salvagedKeys = Object.keys(salvaged || {});
-        if (salvagedKeys.length) {
-          return {
-            chars: salvaged,
-            parsed: true,
-            mode: "salvaged",
-            repaired: true,
-            warning: `原始输入整体 JSON 解析失败，已自动提取 ${salvagedKeys.length} 条可用数据`
-          };
-        }
-
-        return { chars: {}, parsed: false, error: formatJsonError(e1, s) };
-      }
+      setStatus(`已添加：${ch}（${stroke}画${wuxing ? "，" + wuxing : ""}${mean ? "，" + mean : ""}）`);
     }
 
-近：…${snippet}…）`;
+    function clearManual() {
+      manualChars = {};
+      updateManualList();
+      setStatus("已清空手动列表");
     }
 
-    // 兜底：从乱格式里“抠”出 "字": { ... } 这种条目（即使整体 JSON 已坏）
-    function salvageCharPairs(src) {
-      const out = {};
-      const s = String(src || "");
-      let i = 0;
-
-      function skipWS() {
-        while (i < s.length && /\s/.test(s[i])) i += 1;
+    function mergeAll() {
+      const parsed = parseTextToChars(inputEl.value);
+      if (!parsed.ok) {
+        setStatus(parsed.error || "输入解析失败");
+        return;
       }
+      if (parsed.warning) setStatus(parsed.warning);
 
-      function readQuoted() {
-        if (s[i] !== '"') return null;
-        i += 1;
-        let buf = "";
-        let esc = false;
-        while (i < s.length) {
-          const c = s[i];
-          if (esc) {
-            buf += c;
-            esc = false;
-            i += 1;
-            continue;
-          }
-          if (c === "\\") {
-            esc = true;
-            buf += c;
-            i += 1;
-            continue;
-          }
-          if (c === '"') {
-            i += 1;
-            return buf;
-          }
-          buf += c;
-          i += 1;
-        }
-        return null;
-      }
+      const merged = {};
+      // base -> input -> manual（手动最高优先级）
+      Object.assign(merged, coerceToChars(base));
+      Object.assign(merged, parsed.chars || {});
+      Object.assign(merged, manualChars || {});
 
-      function readBracedObject() {
-        if (s[i] !== "{") return null;
-        let start = i;
-        let depth = 0;
-        let inStr = false;
-        let esc = false;
-
-        while (i < s.length) {
-          const c = s[i];
-          if (inStr) {
-            if (esc) {
-              esc = false;
-            } else if (c === "\\") {
-              esc = true;
-            } else if (c === '"') {
-              inStr = false;
-            }
-            i += 1;
-            continue;
-          }
-
-          if (c === '"') {
-            inStr = true;
-            i += 1;
-            continue;
-          }
-          if (c === "{") depth += 1;
-          if (c === "}") {
-            depth -= 1;
-            if (depth === 0) {
-              i += 1;
-              return s.slice(start, i);
-            }
-          }
-          i += 1;
-        }
-        return null;
-      }
-
-      while (i < s.length) {
-        skipWS();
-        if (s[i] !== '"') {
-          i += 1;
-          continue;
-        }
-        const keyPos = i;
-        const key = readQuoted();
-        if (!key) break;
-
-        // 只取“单字 key”（你这个场景是单个汉字）
-        if ([...key].length !== 1) continue;
-
-        skipWS();
-        if (s[i] !== ":") {
-          i = keyPos + 1;
-          continue;
-        }
-        i += 1;
-        skipWS();
-
-        // value object
-        if (s[i] === "{") {
-          const objText = readBracedObject();
-          if (!objText) continue;
-          try {
-            const obj = JSON.parse(removeTrailingCommas(normalizeLooseJson(objText)));
-            const entry = cleanEntry(obj);
-            if (Object.keys(entry).length) out[key] = entry;
-          } catch (_) {
-            // ignore
-          }
-        } else {
-          // allow number stroke: "字": 12
-          const numMatch = s.slice(i).match(/^(-?\d+)/);
-          if (numMatch) {
-            const n = Number.parseInt(numMatch[1], 10);
-            if (Number.isFinite(n)) out[key] = { stroke: n };
-          }
-        }
-      }
-
-      return out;
-    }
-
-    function removeTrailingCommas(s) {
-      // 允许用户粘贴“最后多一个逗号”的内容
-      return s.replace(/,\s*([}\]])/g, "$1");
-    }
-
-    function cleanEntry(v) {
-      if (!v || typeof v !== "object") return {};
-      const out = {};
-      const stroke = Number.parseInt(v.stroke ?? v.strokes ?? v.bihua ?? v["笔画"] ?? v["画数"] ?? "", 10);
-      if (Number.isFinite(stroke) && stroke > 0) out.stroke = stroke;
-      const wx = String(v.wuxing ?? v.wx ?? v["五行"] ?? "").trim();
-      if (wx) out.wuxing = wx.slice(0, 1);
-      const mean = String(v.mean ?? v.desc ?? v["释义"] ?? v.meaning ?? "").trim();
-      if (mean) out.mean = mean;
-      return out;
-    }
-
-    function normalizeToChars(obj) {
-      if (!obj) return {};
-      // { chars: {...} }
-      if (obj.chars && typeof obj.chars === "object" && !Array.isArray(obj.chars)) return obj.chars;
-
-      // array: [{char:"字",...}, ...]
-      if (Array.isArray(obj)) {
-        const chars = {};
-        for (const it of obj) {
-          const ch = String(it?.char ?? it?.["字"] ?? it?.["汉字"] ?? "").trim();
-          if (!ch) continue;
-          chars[ch] = cleanEntry(it);
-        }
-        return chars;
-      }
-
-      // plain object: {"锦": {...}, ...}
-      if (typeof obj === "object") return obj;
-
-      return {};
-    }
-
-    function tryParseAny(text) {
-      let s = stripFences(text).trim();
-      if (!s) return { chars: {}, parsed: true, mode: "empty" };
-
-      // 如果是纯键值对块（没有外层 {} 或 []），补上 {}
-      if (!s.startsWith("{") && !s.startsWith("[") && /"\s*[^"]+"\s*:/.test(s)) {
-        s = "{" + s + "}";
-      }
-
-      // 如果是多段 {..},{..} 且包含 "char":，补上 []
-      if (!s.startsWith("[") && /"char"\s*:/.test(s) && s.includes("{")) {
-        s = "[" + s + "]";
-      }
-
-      // 常见粘贴噪声清理
-      s = s.replace(/}\s*,\s*,\s*{/g, "},{");
-      s = s.replace(/,\s*,/g, ",");
-      s = removeTrailingCommas(s);
-
-      // 尝试 JSON.parse
-      try {
-        const obj = JSON.parse(s);
-        const chars = normalizeToChars(obj);
-
-        // 如果 normalize 出来仍不是 chars 字典，尝试再包一层
-        if (!chars || typeof chars !== "object" || Array.isArray(chars)) {
-          return { chars: {}, parsed: false, error: "不是可识别的字库结构" };
-        }
-
-        // clean each entry
-        const cleaned = {};
-        for (const [k, v] of Object.entries(chars)) {
-          const key = String(k || "").trim();
-          if (!key) continue;
-          const entry = cleanEntry(v);
-          if (Object.keys(entry).length) cleaned[key] = entry;
-          else if (typeof v === "number") cleaned[key] = { stroke: Number.parseInt(v, 10) }; // 兼容 {"字": 12}
-        }
-        return { chars: cleaned, parsed: true, mode: "json" };
-      } catch (e) {
-        return { chars: {}, parsed: false, error: String(e?.message || e) };
-      }
-    }
-
-    function stableStringify(charsObj) {
-      const keys = Object.keys(charsObj || {}).sort((a, b) => a.localeCompare(b, "zh-Hans"));
-      const out = { chars: {} };
-      for (const k of keys) out.chars[k] = cleanEntry(charsObj[k]);
-      return JSON.stringify(out, null, 2);
-    }
-
-    async function loadBase() {
-      setStatus("读取中…");
-      try {
-        const url = "./qiming_patch.json?v=" + Date.now(); // cache buster
-        const res = await fetch(url, { cache: "no-store" });
-        if (!res.ok) throw new Error("HTTP " + res.status);
-        const obj = await res.json();
-        base = { chars: normalizeToChars(obj) };
-        // 清洗一次
-        base.chars = Object.fromEntries(
-          Object.entries(base.chars || {}).map(([k, v]) => [k, cleanEntry(v)])
-        );
-        const n = Object.keys(base.chars || {}).length;
-        setStatus(`已读取仓库补丁：${n} 字`);
-      } catch (e) {
-        base = { chars: {} };
-        setStatus("读取失败：" + (e?.message || e));
-      }
+      const payload = { chars: merged };
+      outEl.value = JSON.stringify(payload, null, 2);
+      if (!parsed.warning) setStatus(`已合并：基础 ${Object.keys(coerceToChars(base)).length} 条 + 输入 ${Object.keys(parsed.chars || {}).length} 条 + 手动 ${Object.keys(manualChars || {}).length} 条`);
     }
 
     function clearAll() {
-      base = { chars: {} };
+      inputEl.value = "";
+      outEl.value = "";
       manualChars = {};
       updateManualList();
-      if (inputEl) inputEl.value = "";
-      if (outEl) outEl.value = "";
-      setStatus("已清空（未读取补丁）");
+      setStatus("已清空输入/输出/手动列表");
     }
 
-    function mergeAndExport() {
-      const baseCountBefore = Object.keys(base.chars || {}).length;
-
-      const parsed = tryParseAny(inputEl.value);
-      if (!parsed.parsed) {
-        setStatus("解析失败：" + (parsed.error || "未知错误") + "。常见原因：末尾多逗号、中文引号、外层多包了一对 {}、或把多个对象直接拼在一起。");
-        return;
+    async function loadBase() {
+      try {
+        setStatus("正在加载基础补丁字库…");
+        const r = await fetch(`./qiming_patch.json?v=${Date.now()}`, { cache: "no-store" });
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        const j = await r.json();
+        base = j && typeof j === "object" ? j : { chars: {} };
+        const n = Object.keys(coerceToChars(base)).length;
+        setStatus(`已加载基础补丁字库：${n} 条`);
+      } catch (e) {
+        setStatus(`加载失败：${String(e && e.message ? e.message : e)}`);
       }
-
-      const incoming = parsed.chars || {};
-      const inKeys = Object.keys(incoming);
-      const manKeys = Object.keys(manualChars || {});
-      let conflicts = 0;
-      let manualConflicts = 0;
-
-      for (const k of inKeys) {
-        if (base.chars[k]) conflicts += 1;
-        const merged = { ...(base.chars[k] || {}), ...(incoming[k] || {}) };
-        base.chars[k] = cleanEntry(merged);
-      }
-
-      // 手动列表优先级最高（最后覆盖）
-      for (const k of manKeys) {
-        if (base.chars[k]) manualConflicts += 1;
-        const merged = { ...(base.chars[k] || {}), ...(manualChars[k] || {}) };
-        base.chars[k] = cleanEntry(merged);
-      }
-
-      const out = stableStringify(base.chars);
-      outEl.value = out;
-
-      const outCount = Object.keys(base.chars || {}).length;
-      const added = outCount - baseCountBefore;
-
-      let note = "";
-      if (parsed.mode === "salvaged") note = "（已自动修复：从乱格式中提取有效条目）";
-      else if (parsed.repaired) note = "（已自动清洗）";
-
-      const warn = parsed.warning ? `；提示：${parsed.warning}` : "";
-
-      setStatus(
-        `合并完成${note}：输入 ${inKeys.length} 字；手动 ${manKeys.length}；覆盖 ${conflicts + manualConflicts}；新增 ${Math.max(
-          0,
-          added
-        )}；总计 ${outCount}${warn}`
-      );
     }
 
-function copyOut() {
-      const text = outEl.value.trim();
+    async function copyOut() {
+      const text = String(outEl.value || "").trim();
       if (!text) {
-        setStatus("没有输出内容可复制（先点“清洗 + 合并 + 去重”）");
+        setStatus("输出为空，没东西可复制");
         return;
       }
       try {
         await navigator.clipboard.writeText(text);
-        setStatus("已复制到剪贴板 ✅");
+        setStatus("已复制输出到剪贴板");
       } catch (e) {
-        // fallback
+        // iOS 某些环境可能不允许 clipboard API
         try {
           outEl.focus();
           outEl.select();
           document.execCommand("copy");
-          setStatus("已复制到剪贴板 ✅");
+          setStatus("已复制输出到剪贴板");
         } catch (e2) {
-          setStatus("复制失败：" + (e2?.message || e2));
+          setStatus("复制失败：请手动长按选择复制");
         }
       }
     }
 
     function downloadOut() {
-      const text = outEl.value.trim();
+      const text = String(outEl.value || "").trim();
       if (!text) {
-        setStatus("没有输出内容可下载（先点“清洗 + 合并 + 去重”）");
+        setStatus("输出为空，没东西可下载");
         return;
       }
-      const blob = new Blob([text], { type: "application/json;charset=utf-8" });
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = "qiming_patch.json";
-      document.body.appendChild(a);
-      a.click();
-      setTimeout(() => {
-        URL.revokeObjectURL(a.href);
-        a.remove();
-      }, 0);
-      setStatus("已生成下载文件 ✅（覆盖仓库 qiming_patch.json）");
+      try {
+        const blob = new Blob([text], { type: "application/json;charset=utf-8" });
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = "qiming_patch.json";
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => {
+          URL.revokeObjectURL(a.href);
+          a.remove();
+        }, 0);
+        setStatus("已生成下载：qiming_patch.json");
+      } catch (e) {
+        setStatus(`下载失败：${String(e && e.message ? e.message : e)}`);
+      }
     }
 
+    // 绑定
     if (loadBtn) loadBtn.addEventListener("click", loadBase);
+    if (mergeBtn) mergeBtn.addEventListener("click", mergeAll);
     if (clearBtn) clearBtn.addEventListener("click", clearAll);
-    if (mergeBtn) mergeBtn.addEventListener("click", mergeAndExport);
     if (copyBtn) copyBtn.addEventListener("click", copyOut);
     if (dlBtn) dlBtn.addEventListener("click", downloadOut);
     if (addCharBtn) addCharBtn.addEventListener("click", addManualChar);
     if (clearManualBtn) clearManualBtn.addEventListener("click", clearManual);
 
     updateManualList();
-
-    // 初始状态：不自动拉取，避免误触；用户点“读取仓库补丁”再合并
-    setStatus("未读取补丁（建议先点“读取仓库补丁”）");
   }
-
 function initMeTools() {
     const uiEl = qs("#uiVersion");
     const cacheEl = qs("#cacheVersion");
