@@ -3424,6 +3424,16 @@ document.addEventListener('DOMContentLoaded', () => {
     updateTopbar(moduleKey);
     document.body.classList.add("module-open");
     setBottomActive(lastGroup);
+
+    // 进入模块时强制回到顶部，避免在长页滚动位置导致“只剩返回/关闭”的错觉
+    try{
+      const c = qs(".container");
+      if(c) c.scrollIntoView({ block: "start" });
+      if(window && typeof window.scrollTo === "function"){
+        try{ window.scrollTo({ top: 0, left: 0, behavior: "smooth" }); }
+        catch(e){ window.scrollTo(0, 0); }
+      }
+    }catch(e){}
   }
 
   function bindEntryCards() {
@@ -3452,7 +3462,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   
-  const UI_VERSION = "v12.3-2025-12-24-03";
+  const UI_VERSION = "v12.3-2025-12-24-04";
 
   
   // ------------------------------
