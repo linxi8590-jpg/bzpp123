@@ -16,7 +16,7 @@
 <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png" />
 <link rel="icon" type="image/png" sizes="512x512" href="./icon-512.png" />
 
-  <title>八字排盘小工具 v12.2</title>
+  <title>八字排盘小工具 v12.3</title>
 
   <script src="https://cdn.jsdelivr.net/npm/lunar-javascript/lunar.js"></script>
 
@@ -673,5 +673,18 @@
       });
     }
   </script>
+
+  <!-- 神煞命中详情浮层（用于 ss-inline-badge 点击详情；若元素缺失会导致点击无反应） -->
+  <div id="ssDetailOverlay" class="ss-detail-overlay" aria-hidden="true">
+    <div class="ss-detail-card" role="dialog" aria-modal="true" aria-labelledby="ssDetailTitle">
+      <div class="ss-detail-head">
+        <div class="ss-detail-title" id="ssDetailTitle">命中详情</div>
+        <button class="ss-detail-close" id="ssDetailCloseBtn" type="button" aria-label="关闭">×</button>
+      </div>
+      <div class="ss-detail-sub" id="ssDetailSub">—</div>
+      <div class="ss-detail-body" id="ssDetailBody"></div>
+    </div>
+  </div>
+
 </body>
 </html>

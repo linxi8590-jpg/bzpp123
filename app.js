@@ -3388,7 +3388,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   
-  const UI_VERSION = "v12.3-2025-12-19-02";
+  const UI_VERSION = "v12.3-2025-12-24-01";
 
   
   // ------------------------------
