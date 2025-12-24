@@ -27,7 +27,7 @@
 </head>
 <body class="group-ui">
   <div class="container">
-    <h1 class="title">🔮 八字排盘小工具 v11.13a</h1>
+    <h1 class="title">🔮 八字排盘小工具 v12.3</h1>
     <p class="subtitle">
       在 v5 的基础上新增：<b>黄历/万年历</b> 与 <b>神煞学习页</b>；排盘页增加“神煞（试行版）”。<br/>
       神煞自动判定已扩展为<strong>“地支组合法 + 部分干支/日柱规则”</strong>：桃花 / 驿马 / 华盖 / 将星，以及文昌、天乙、国印、太极、禄神、羊刃、飞刃、血刃、红鸾、天喜、六合、魁罡、十恶大败、孤鸾、阴阳差错等。未覆盖者仍保留学习表，后续可继续补齐。<br/>
@@ -89,19 +89,24 @@
       <!-- 我的 -->
       <div class="group-view" id="groupMe">
         <div class="group-kicker">我的</div>
-        
-        <div class="me-cards">
+
+        <div class="group-grid">
+          <button class="entry-card" data-module="MeTools" type="button">
+            <div class="entry-title">我的工具</div>
+            <div class="entry-desc">维护、版本自检、补丁编辑器等。</div>
+          </button>
+
+          <button class="entry-card ghost" type="button" disabled>
+            <div class="entry-title">预留</div>
+            <div class="entry-desc">收藏 / 历史 / 备注…</div>
+          </button>
+        </div>
+
+        <!-- 极简自救：仅在脚本异常时出现提示与一键修复（避免“我的”页变长） -->
+        <div class="me-cards me-mini" style="margin-top:12px;">
           <div class="card me-card">
-            <div class="section-title">版本信息</div>
+            <div class="section-title">运行自检</div>
             <div class="me-kv">
-              <div class="me-kv-row">
-                <span class="me-k">UI 版本</span>
-                <span class="me-v mono" id="uiVersion">-</span>
-              </div>
-              <div class="me-kv-row">
-                <span class="me-k">缓存版本</span>
-                <span class="me-v mono" id="cacheVersion">-</span>
-              </div>
               <div class="me-kv-row">
                 <span class="me-k">运行状态</span>
                 <span class="me-v mono" id="runtimeStatus">-</span>
@@ -110,87 +115,16 @@
                 <span class="me-k">最近错误</span>
                 <span class="me-v mono" id="runtimeErrorShort">-</span>
               </div>
-              <div class="me-kv-row">
-                <span class="me-k">构建标记</span>
-                <span class="me-v mono" id="buildTime">-</span>
-              </div>
             </div>
 
             <div class="runtime-alert" id="runtimeAlert">
               <div class="runtime-alert-title">检测到脚本异常</div>
-              <div class="runtime-alert-text">建议先点下面按钮：清缓存 + 刷新（不影响其他网站）。</div>
+              <div class="runtime-alert-text">建议点“一键清缓存重载”。如需更多维护项，请进入“我的工具”。</div>
               <div class="runtime-alert-actions">
                 <button class="btn" id="runtimeFixBtn" type="button">一键清缓存重载</button>
               </div>
             </div>
           </div>
-
-          <div class="card me-card">
-            <div class="section-title">维护工具</div>
-            <div class="me-actions">
-              <button class="btn secondary" id="btnSoftReload" type="button">仅刷新页面</button>
-              <button class="btn" id="btnHardRefresh" type="button">清理缓存并刷新</button>
-              <button class="btn secondary" id="btnNukeUpdate" type="button">强制更新（重装缓存）</button>
-            </div>
-            <div class="hint small-hint">
-              iOS 若出现页面不更新，可优先使用“清理缓存并刷新”。若仍不更新，再用“强制更新（重装缓存）”。这两项操作仅影响本工具站点缓存，不影响其他网站。
-            </div>
-          </div>
-
-
-          <div class="card me-card" id="mePatchEditorCard">
-            <div class="section-title">启明字库补丁编辑器</div>
-            <div class="hint small-hint">
-              用于将 Gemini 输出的字库内容自动清洗、去重并合并到 <span class="mono">qiming_patch.json</span>。
-              输出内容可直接覆盖仓库同名文件（根目录）。
-            </div>
-
-            <div class="pe-wrap">
-              <div class="pe-row">
-                <button class="btn secondary" id="peLoadBase" type="button">读取仓库补丁</button>
-                <button class="btn secondary" id="peClearAll" type="button">清空</button>
-              </div>
-
-              <div class="pe-label">手动添加单字（会参与合并去重）：</div>
-              <div class="pe-form">
-                <input class="pe-input" id="peChar" maxlength="1" placeholder="字" />
-                <select class="pe-input" id="peWuxing">
-                  <option value="">五行</option>
-                  <option value="金">金</option>
-                  <option value="木">木</option>
-                  <option value="水">水</option>
-                  <option value="火">火</option>
-                  <option value="土">土</option>
-                </select>
-                <input class="pe-input" id="peStroke" type="number" min="1" max="60" placeholder="笔画" />
-              </div>
-              <textarea class="pe-ta pe-mean" id="peMean" placeholder="寓意（可选）"></textarea>
-              <div class="pe-row">
-                <button class="btn secondary" id="peAddChar" type="button">添加到手动列表</button>
-                <button class="btn secondary" id="peClearManual" type="button">清空手动</button>
-              </div>
-              <div class="pe-manual mono" id="peManualList">手动列表：空</div>
-
-
-              <div class="pe-label">粘贴（或导入）Gemini 输出：</div>
-              <textarea class="pe-ta" id="peInput" placeholder='支持：{"chars":{...}} / {"字":{...}} / [{"char":"字",...},...] / 多段 {..},{..} 组合'></textarea>
-
-              <div class="pe-row">
-                <button class="btn" id="peMerge" type="button">清洗 + 合并 + 去重</button>
-              </div>
-
-              <div class="pe-label">输出（可直接覆盖 qiming_patch.json）：</div>
-              <textarea class="pe-ta" id="peOutput" readonly placeholder="点击上方“清洗 + 合并 + 去重”生成输出"></textarea>
-
-              <div class="pe-row">
-                <button class="btn secondary" id="peCopyOut" type="button">复制输出</button>
-                <button class="btn secondary" id="peDownloadOut" type="button">下载 qiming_patch.json</button>
-              </div>
-
-              <div class="pe-status mono" id="peStatus">未读取补丁</div>
-            </div>
-          </div>
-        </div>
 
           <div class="empty-desc">后续可以放：主题、收藏、数据导入导出、个性设置等。</div>
         </div>
@@ -204,6 +138,7 @@
       <div class="tab-btn" id="tabAlmanac">黄历</div>
       <div class="tab-btn" id="tabShenSha">神煞</div>
       <div class="tab-btn" id="tabName">起名</div>
+      <div class="tab-btn hidden" id="tabMeTools">我的工具</div>
     </div>
 
     <!-- 排盘面板 -->
@@ -635,6 +570,102 @@
 
         <div class="hint">
           若你之后想要更“硬核”的版本（自动字库、81数理吉凶解释、同音筛选等），我们可以另开一层高级模式慢慢加。
+        </div>
+      </div>
+    </div>
+
+    <!-- 我的工具（维护/自检/补丁编辑器） -->
+    <div class="panel" id="panelMeTools">
+      <div class="card" style="margin-top:10px;">
+        <div class="section-title" style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+          <span>我的工具</span>
+          <button class="btn secondary" id="meToolsBackBtn" type="button">返回我的</button>
+        </div>
+        <div class="hint small-hint">这里放所有“我个人维护/查看信息用”的功能，避免“我的”页越拉越长。</div>
+      </div>
+
+      <div class="me-cards">
+        <div class="card me-card">
+          <div class="section-title">版本信息</div>
+          <div class="me-kv">
+            <div class="me-kv-row">
+              <span class="me-k">UI 版本</span>
+              <span class="me-v mono" id="uiVersion">-</span>
+            </div>
+            <div class="me-kv-row">
+              <span class="me-k">缓存版本</span>
+              <span class="me-v mono" id="cacheVersion">-</span>
+            </div>
+            <div class="me-kv-row">
+              <span class="me-k">构建标记</span>
+              <span class="me-v mono" id="buildTime">-</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card me-card">
+          <div class="section-title">维护工具</div>
+          <div class="me-actions">
+            <button class="btn secondary" id="btnSoftReload" type="button">仅刷新页面</button>
+            <button class="btn" id="btnHardRefresh" type="button">清理缓存并刷新</button>
+            <button class="btn secondary" id="btnNukeUpdate" type="button">强制更新（重装缓存）</button>
+          </div>
+          <div class="hint small-hint">
+            iOS 若出现页面不更新，可优先使用“清理缓存并刷新”。若仍不更新，再用“强制更新（重装缓存）”。这两项操作仅影响本工具站点缓存，不影响其他网站。
+          </div>
+        </div>
+
+        <div class="card me-card" id="mePatchEditorCard">
+          <div class="section-title">启明字库补丁编辑器</div>
+          <div class="hint small-hint">
+            用于将 Gemini 输出的字库内容自动清洗、去重并合并到 <span class="mono">qiming_patch.json</span>。
+            输出内容可直接覆盖仓库同名文件（根目录）。
+          </div>
+
+          <div class="pe-wrap">
+            <div class="pe-row">
+              <button class="btn secondary" id="peLoadBase" type="button">读取仓库补丁</button>
+              <button class="btn secondary" id="peClearAll" type="button">清空</button>
+            </div>
+
+            <div class="pe-label">手动添加单字（会参与合并去重）：</div>
+            <div class="pe-form">
+              <input class="pe-input" id="peChar" maxlength="1" placeholder="字" />
+              <select class="pe-input" id="peWuxing">
+                <option value="">五行</option>
+                <option value="金">金</option>
+                <option value="木">木</option>
+                <option value="水">水</option>
+                <option value="火">火</option>
+                <option value="土">土</option>
+              </select>
+              <input class="pe-input" id="peStroke" type="number" min="1" max="60" placeholder="笔画" />
+            </div>
+            <textarea class="pe-ta pe-mean" id="peMean" placeholder="寓意（可选）"></textarea>
+            <div class="pe-row">
+              <button class="btn secondary" id="peAddChar" type="button">添加到手动列表</button>
+              <button class="btn secondary" id="peClearManual" type="button">清空手动</button>
+            </div>
+            <div class="pe-manual mono" id="peManualList">手动列表：空</div>
+
+
+            <div class="pe-label">粘贴（或导入）Gemini 输出：</div>
+            <textarea class="pe-ta" id="peInput" placeholder='支持：{"chars":{...}} / {"字":{...}} / [{"char":"字",...},...] / 多段 {..},{..} 组合'></textarea>
+
+            <div class="pe-row">
+              <button class="btn" id="peMerge" type="button">清洗 + 合并 + 去重</button>
+            </div>
+
+            <div class="pe-label">输出（可直接覆盖 qiming_patch.json）：</div>
+            <textarea class="pe-ta" id="peOutput" readonly placeholder="点击上方“清洗 + 合并 + 去重”生成输出"></textarea>
+
+            <div class="pe-row">
+              <button class="btn secondary" id="peCopyOut" type="button">复制输出</button>
+              <button class="btn secondary" id="peDownloadOut" type="button">下载 qiming_patch.json</button>
+            </div>
+
+            <div class="pe-status mono" id="peStatus">未读取补丁</div>
+          </div>
         </div>
       </div>
     </div>

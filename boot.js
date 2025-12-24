@@ -5,8 +5,8 @@
   'use strict';
 
   // 与 sw.js 的 VERSION 保持一致（交付时同时更新）
-  const UI_VERSION = 'v12.3-2025-12-24-01';
-  const SW_EXPECTED_VERSION = '2025-12-24-01';
+  const UI_VERSION = 'v12.3-2025-12-24-02';
+  const SW_EXPECTED_VERSION = '2025-12-24-02';
 
   const qs = (s) => document.querySelector(s);
   const safeText = (el, text) => { try{ if(el) el.textContent = String(text ?? ''); }catch(e){} };
@@ -149,6 +149,39 @@
     }
   }
 
+  // 导航兜底：如果 app.js 因为语法错误等完全没跑起来，至少让底部四栏能切换到“我的”去自救
+  function bindGroupNavFallback(){
+    try{
+      if(window.__BAZI_GROUP_UI_READY) return;
+    }catch(e){}
+
+    const groupToViewId = { home: 'groupHome', tools: 'groupTools', study: 'groupStudy', me: 'groupMe' };
+    const items = Array.from(document.querySelectorAll('#bottomNav .bottom-item'));
+    if(!items.length) return;
+
+    const show = (key) => {
+      try{ document.body.classList.remove('module-open'); }catch(e){}
+      Object.values(groupToViewId).forEach(id => {
+        const el = document.getElementById(id);
+        if(el) el.classList.remove('active');
+      });
+      const viewId = groupToViewId[key] || groupToViewId.home;
+      const target = viewId ? document.getElementById(viewId) : null;
+      if(target) target.classList.add('active');
+      items.forEach(btn => {
+        try{ btn.classList.toggle('active', btn.dataset.group === key); }catch(e){}
+      });
+    };
+
+    items.forEach(btn => {
+      try{
+        if(btn.dataset.navBound === '1') return;
+        btn.addEventListener('click', () => show(btn.dataset.group || 'home'));
+        btn.dataset.navBound = '1';
+      }catch(e){}
+    });
+  }
+
   // 全局错误兜底：尽量给出“怎么自救”的按钮
   function installGlobalErrorGuards(){
     const onErr = (msg, src, line, col, err) => {
@@ -232,5 +265,6 @@
     renderVersions();
     bindMeButtons();
     detectCacheVersion();
+    setTimeout(bindGroupNavFallback, 900);
   });
 })();

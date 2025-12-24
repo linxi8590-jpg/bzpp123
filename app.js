@@ -6,6 +6,7 @@
     tabAlmanac: document.getElementById('tabAlmanac'),
     tabShenSha: document.getElementById('tabShenSha'),
     tabName: document.getElementById('tabName'),
+    tabMeTools: document.getElementById('tabMeTools'),
 
     panelBazi: document.getElementById('panelBazi'),
     panelJieqi: document.getElementById('panelJieqi'),
@@ -13,6 +14,7 @@
     panelAlmanac: document.getElementById('panelAlmanac'),
     panelShenSha: document.getElementById('panelShenSha'),
     panelName: document.getElementById('panelName'),
+    panelMeTools: document.getElementById('panelMeTools'),
 
     solarModeBtn: document.getElementById('solarModeBtn'),
     lunarModeBtn: document.getElementById('lunarModeBtn'),
@@ -2579,7 +2581,8 @@ const timeStr = els.minuteToggle.checked ? `${pad2(h)}:${pad2(min)}` : `${pad2(h
       luck: [els.tabLuck, els.panelLuck],
       almanac: [els.tabAlmanac, els.panelAlmanac],
       shensha: [els.tabShenSha, els.panelShenSha],
-      name: [els.tabName, els.panelName]
+      name: [els.tabName, els.panelName],
+      metools: [els.tabMeTools, els.panelMeTools]
     };
 
     Object.keys(map).forEach(k=>{
@@ -2769,6 +2772,7 @@ function initMissingChildGuanShaList(){
     els.tabAlmanac.addEventListener('click', () => switchTab('almanac'));
     els.tabShenSha.addEventListener('click', () => switchTab('shensha'));
     els.tabName.addEventListener('click', () => switchTab('name'));
+    if(els.tabMeTools) els.tabMeTools.addEventListener('click', () => switchTab('metools'));
 
 
         setupNameModule();
@@ -3277,6 +3281,7 @@ document.addEventListener('DOMContentLoaded', () => {
     Jieqi: "tabJieqi",
     Almanac: "tabAlmanac",
     ShenSha: "tabShenSha",
+    MeTools: "tabMeTools",
   };
 
   const moduleToTitle = {
@@ -3286,6 +3291,7 @@ document.addEventListener('DOMContentLoaded', () => {
     Jieqi: "节气",
     Almanac: "黄历",
     ShenSha: "神煞",
+    MeTools: "我的工具",
   };
 
   const moduleToGroup = {
@@ -3295,6 +3301,7 @@ document.addEventListener('DOMContentLoaded', () => {
     Jieqi: "tools",
     Almanac: "tools",
     ShenSha: "study",
+    MeTools: "me",
   };
 
   const groupToViewId = {
@@ -3388,7 +3395,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   
-  const UI_VERSION = "v12.3-2025-12-24-01";
+  const UI_VERSION = "v12.3-2025-12-24-02";
 
   
   // ------------------------------
@@ -3820,9 +3827,21 @@ function initMeTools() {
 function initGroupUI() {
     if (!qs("#groupViews") || !qs("#bottomNav")) return;
 
+    // 供 boot.js 判断是否需要启用“导航兜底”
+    try{ window.__BAZI_GROUP_UI_READY = true; }catch(e){}
+
     bindEntryCards();
     bindBottomNav();
     bindTopbarBtns();
+
+    // 我的工具 · 返回按钮（从二级页回到“我的”）
+    try{
+      const back = qs('#meToolsBackBtn');
+      if(back && !back.dataset.bound){
+        back.addEventListener('click', () => showGroup('me'));
+        back.dataset.bound = '1';
+      }
+    }catch(e){}
 
     // 初始落在首页分组，避免直接进旧模块页
     showGroup("home");

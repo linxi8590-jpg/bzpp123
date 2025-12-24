@@ -1020,6 +1020,11 @@ body.group-ui .legacy-tabs{
   display: none !important;
 }
 
+/* 额外隐藏：用于只给 JS 复用的 Tab */
+.tab-btn.hidden{
+  display: none !important;
+}
+
 /* 默认显示分组页，隐藏模块面板 */
 body.group-ui .panel{
   display: none;
@@ -1106,6 +1111,16 @@ body.group-ui .panel{
 
 .entry-card:hover{
   border-color: rgba(215,178,106,.25);
+}
+
+/* 入口占位（不可点击） */
+.entry-card.ghost{
+  opacity: .45;
+  cursor: not-allowed;
+}
+
+.entry-card.ghost:hover{
+  border-color: rgba(255,255,255,.06);
 }
 
 .entry-title{

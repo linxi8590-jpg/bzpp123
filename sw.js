@@ -1,7 +1,7 @@
 // bazi PWA service worker
 // 版本号策略：每次你更新 index/app/styles 或新增模块时
 // 只要改一下 VERSION（或直接改 CACHE_NAME）即可强制所有设备拉取新缓存。
-const VERSION = "2025-12-24-01";
+const VERSION = "2025-12-24-02";
 const CACHE_NAME = `bazi-tool-${VERSION}`;
 
 // 同源核心资源（可离线）
