@@ -5,6 +5,7 @@
     tabLuck: document.getElementById('tabLuck'),
     tabAlmanac: document.getElementById('tabAlmanac'),
     tabShenSha: document.getElementById('tabShenSha'),
+    tabHanzi: document.getElementById('tabHanzi'),
     tabName: document.getElementById('tabName'),
     tabMeTools: document.getElementById('tabMeTools'),
 
@@ -13,6 +14,7 @@
     panelLuck: document.getElementById('panelLuck'),
     panelAlmanac: document.getElementById('panelAlmanac'),
     panelShenSha: document.getElementById('panelShenSha'),
+    panelHanzi: document.getElementById('panelHanzi'),
     panelName: document.getElementById('panelName'),
     panelMeTools: document.getElementById('panelMeTools'),
 
@@ -213,6 +215,51 @@
     clearTimeout(showToast._t);
     showToast._t = setTimeout(() => els.toast.classList.remove('show'), 1200);
   }
+
+  /* ===================== 启明字库补丁：全局预加载（供起名/汉字查询共用） ===================== */
+  let __qimingPatchPromise = null;
+
+  function mergeQimingPatchToGlobal(obj){
+    if(!obj || typeof obj !== 'object') return;
+    const chars = (obj.chars && typeof obj.chars === 'object') ? obj.chars : null;
+    if(!chars) return;
+    try{
+      if(typeof QIMING_CHAR_DB === 'undefined' || !QIMING_CHAR_DB) return;
+      const db = QIMING_CHAR_DB;
+      Object.keys(chars).forEach(ch=>{
+        const entry = chars[ch];
+        if(!entry || typeof entry !== 'object') return;
+        db[ch] = Object.assign({}, (db[ch] || {}), entry);
+        if(entry.stroke) {
+          const n = Number(entry.stroke);
+          if(Number.isFinite(n) && n > 0) {
+            try{ if(typeof STROKE_DB !== 'undefined') STROKE_DB[ch] = Math.round(n); }catch(e){}
+          }
+        }
+      });
+    }catch(e){}
+  }
+
+  function ensureQimingPatchLoaded(){
+    if(window.__QIMING_PATCH_LOADED) return Promise.resolve(true);
+    if(__qimingPatchPromise) return __qimingPatchPromise;
+    __qimingPatchPromise = (async ()=>{
+      try{
+        const res = await fetch(`./qiming_patch.json?ts=${Date.now()}`, { cache: 'no-store' });
+        if(!res || !res.ok) return false;
+        const obj = await res.json();
+        mergeQimingPatchToGlobal(obj);
+        window.__QIMING_PATCH_LOADED = true;
+        return true;
+      }catch(e){ return false; }
+    })();
+    return __qimingPatchPromise;
+  }
+
+  // 暴露给其它模块（如汉字查询）复用
+  window.ensureQimingPatchLoaded = ensureQimingPatchLoaded;
+
+
   function pad2(n){ return String(n).padStart(2,'0'); }
   function getTZ(){ return Intl.DateTimeFormat().resolvedOptions().timeZone || 'Local'; }
   function fmtMD(date){ return `${date.getMonth()+1}月${date.getDate()}日`; }
@@ -2575,12 +2622,14 @@ const timeStr = els.minuteToggle.checked ? `${pad2(h)}:${pad2(min)}` : `${pad2(h
   /* ===================== Tab/子模式 ===================== */
   function switchTab(which){
     if(which === 'name' && typeof setupNameModule === 'function'){ setupNameModule(); }
+    if(which === 'hanzi' && typeof setupHanziModule === 'function'){ setupHanziModule(); }
     const map = {
       bazi: [els.tabBazi, els.panelBazi],
       jieqi: [els.tabJieqi, els.panelJieqi],
       luck: [els.tabLuck, els.panelLuck],
       almanac: [els.tabAlmanac, els.panelAlmanac],
       shensha: [els.tabShenSha, els.panelShenSha],
+      hanzi: [els.tabHanzi, els.panelHanzi],
       name: [els.tabName, els.panelName],
       metools: [els.tabMeTools, els.panelMeTools]
     };
@@ -2771,6 +2820,7 @@ function initMissingChildGuanShaList(){
     els.tabLuck.addEventListener('click', () => switchTab('luck'));
     els.tabAlmanac.addEventListener('click', () => switchTab('almanac'));
     els.tabShenSha.addEventListener('click', () => switchTab('shensha'));
+    if(els.tabHanzi) els.tabHanzi.addEventListener('click', () => switchTab('hanzi'));
     els.tabName.addEventListener('click', () => switchTab('name'));
     if(els.tabMeTools) els.tabMeTools.addEventListener('click', () => switchTab('metools'));
 
@@ -2852,6 +2902,10 @@ function initMissingChildGuanShaList(){
     updateSsListVisibility();
     try{ initMissingShenshaList(); }catch(e){}
     try{ initMissingChildGuanShaList(); }catch(e){}
+
+    // 预拉取启明字库补丁：让学习/查询也能吃到最新字库
+    try{ ensureQimingPatchLoaded(); }catch(e){}
+
   }
 
   init();
@@ -3281,6 +3335,7 @@ document.addEventListener('DOMContentLoaded', () => {
     Jieqi: "tabJieqi",
     Almanac: "tabAlmanac",
     ShenSha: "tabShenSha",
+    HanZi: "tabHanzi",
     MeTools: "tabMeTools",
   };
 
@@ -3291,6 +3346,7 @@ document.addEventListener('DOMContentLoaded', () => {
     Jieqi: "节气",
     Almanac: "黄历",
     ShenSha: "神煞",
+    HanZi: "汉字查询",
     MeTools: "我的工具",
   };
 
@@ -3301,6 +3357,7 @@ document.addEventListener('DOMContentLoaded', () => {
     Jieqi: "tools",
     Almanac: "tools",
     ShenSha: "study",
+    HanZi: "study",
     MeTools: "me",
   };
 
@@ -3395,7 +3452,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   
-  const UI_VERSION = "v12.3-2025-12-24-02";
+  const UI_VERSION = "v12.3-2025-12-24-03";
 
   
   // ------------------------------

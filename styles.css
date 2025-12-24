@@ -1417,3 +1417,92 @@ button.small{
   white-space: pre-wrap;
 }
 
+
+
+/* ===================== 学习 · 汉字查询 ===================== */
+.subsection{
+  margin-top: 14px;
+}
+.subsection-title{
+  font-size: 14px;
+  opacity: .9;
+  margin: 8px 0;
+}
+.wuxing-row{
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.wuxing-row .mode-pill{
+  cursor: pointer;
+}
+.wuxing-row .mode-pill.ghost{
+  opacity: .75;
+}
+.stroke-row{
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.stroke-row .search-input{
+  flex: 1;
+}
+.stroke-chips{
+  margin-top: 10px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.stroke-chip{
+  padding: 8px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.04);
+  color: inherit;
+}
+.stroke-chip:active{
+  transform: scale(.98);
+}
+.hz-meta{
+  margin-top: 12px;
+  opacity: .85;
+  font-size: 13px;
+}
+.hz-grid{
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+.hz-item{
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.03);
+  border-radius: 12px;
+  padding: 12px;
+}
+.hz-head{
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.hz-char{
+  font-size: 34px;
+  line-height: 1;
+  width: 40px;
+  text-align: center;
+}
+.hz-tags{
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.hz-mean{
+  margin-top: 10px;
+  font-size: 14px;
+  line-height: 1.5;
+  opacity: .92;
+}
+.empty-note{
+  opacity: .7;
+  padding: 18px 6px;
+}

@@ -83,6 +83,10 @@
             <div class="entry-title">神煞</div>
             <div class="entry-desc">学习表 + 规则补全入口。</div>
           </button>
+          <button class="entry-card" data-module="HanZi" type="button">
+            <div class="entry-title">汉字查询</div>
+            <div class="entry-desc">按五行/笔画筛选字库，并查看寓意。</div>
+          </button>
         </div>
       </div>
 
@@ -137,6 +141,7 @@
       <div class="tab-btn" id="tabLuck">运势</div>
       <div class="tab-btn" id="tabAlmanac">黄历</div>
       <div class="tab-btn" id="tabShenSha">神煞</div>
+      <div class="tab-btn hidden" id="tabHanzi">汉字查询</div>
       <div class="tab-btn" id="tabName">起名</div>
       <div class="tab-btn hidden" id="tabMeTools">我的工具</div>
     </div>
@@ -442,6 +447,39 @@
 
         <div class="ss-list" id="ssList"></div>
       </div>
+
+    <!-- 学习 · 汉字查询 -->
+    <div class="panel" id="panelHanzi">
+      <div class="section-title">汉字查询</div>
+
+      <div class="hint">
+        从当前启明字库（含补丁）里按<strong>五行</strong>或<strong>笔画</strong>筛选汉字。点字可复制。
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">五行查法</div>
+        <div class="wuxing-row" id="hzWuxingRow">
+          <button class="mode-pill" data-wuxing="金" type="button">金</button>
+          <button class="mode-pill" data-wuxing="木" type="button">木</button>
+          <button class="mode-pill" data-wuxing="水" type="button">水</button>
+          <button class="mode-pill" data-wuxing="火" type="button">火</button>
+          <button class="mode-pill" data-wuxing="土" type="button">土</button>
+          <button class="mode-pill ghost" data-wuxing="all" type="button">全部</button>
+        </div>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">笔画查法</div>
+        <div class="stroke-row">
+          <input id="hzStrokeInput" class="search-input" inputmode="numeric" pattern="[0-9]*" placeholder="输入笔画（如 8）" />
+          <button class="btn" id="hzStrokeSearchBtn" type="button">查询</button>
+        </div>
+        <div class="stroke-chips" id="hzStrokeChips"></div>
+      </div>
+
+      <div class="hz-meta" id="hzMeta"></div>
+      <div class="hz-list" id="hzList"></div>
+    </div>
     </div>
 
     <!-- 起名/测名 -->
@@ -695,6 +733,7 @@
   <script src="./boot.js"></script>
   <script src="./data.js"></script>
   <script src="./qiming.js"></script>
+  <script src="./hanzi.js"></script>
   <script src="./app.js"></script>
   <script>
     // 注册 PWA 的 service worker

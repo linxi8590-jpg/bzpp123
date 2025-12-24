@@ -5,8 +5,8 @@
   'use strict';
 
   // 与 sw.js 的 VERSION 保持一致（交付时同时更新）
-  const UI_VERSION = 'v12.3-2025-12-24-02';
-  const SW_EXPECTED_VERSION = '2025-12-24-02';
+  const UI_VERSION = 'v12.3-2025-12-24-03';
+  const SW_EXPECTED_VERSION = '2025-12-24-03';
 
   const qs = (s) => document.querySelector(s);
   const safeText = (el, text) => { try{ if(el) el.textContent = String(text ?? ''); }catch(e){} };
