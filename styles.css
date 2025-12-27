@@ -121,7 +121,6 @@
       cursor: pointer;
       text-align: center;
       user-select: none;
-      touch-action: manipulation;
       transition: filter .12s ease, transform .12s ease, border-color .12s ease, background .12s ease;
     }
     .mode-pill:active{ transform: scale(.98); }
@@ -775,7 +774,8 @@
     gap: 0;
     padding: 10px 8px calc(10px + env(safe-area-inset-bottom));
     background: rgba(10,12,18,0.92);
-border-top: 1px solid rgba(255,255,255,0.06);
+    backdrop-filter: blur(10px);
+    border-top: 1px solid rgba(255,255,255,0.06);
     margin: 0;
   }
   .tab-btn{
@@ -826,13 +826,13 @@ border-top: 1px solid rgba(255,255,255,0.06);
   position: fixed;
   inset: 0;
   background: rgba(0,0,0,.55);
-display: none;
+  backdrop-filter: blur(6px);
+  display: none;
   align-items: flex-end;
   justify-content: center;
   z-index: 1200;
-  pointer-events: none;
 }
-.ss-detail-overlay.show{ display: flex; pointer-events: auto; }
+.ss-detail-overlay.show{ display: flex; }
 
 .ss-detail-card{
   width: min(720px, 100%);
@@ -1107,8 +1107,6 @@ body.group-ui .panel{
     radial-gradient(300px 120px at 10% 0%, rgba(215,178,106,.08), transparent 60%),
     linear-gradient(135deg, rgba(255,255,255,.03), rgba(255,255,255,.01));
   cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-  touch-action: manipulation;
 }
 
 .entry-card:hover{
@@ -1170,6 +1168,7 @@ body.group-ui .panel{
     linear-gradient(180deg, #0b0d12, #07080c);
   border-top: 1px solid rgba(255,255,255,.06);
   z-index: 999;
+  backdrop-filter: blur(10px);
 }
 
 .bottom-item{
@@ -1460,7 +1459,6 @@ button.small{
   border: 1px solid rgba(255,255,255,.12);
   background: rgba(255,255,255,.04);
   color: inherit;
-  touch-action: manipulation;
 }
 .stroke-chip:active{
   transform: scale(.98);
@@ -1509,13 +1507,21 @@ button.small{
   padding: 18px 6px;
 }
 
-
-/* 汉字查询：内联筛选条（iPhone 友好，不用弹窗遮罩） */
-.hz-filterbar{
-  display: flex;
-  flex-direction: column;
+/* ===========================
+   汉字查询：内联筛选条（iPhone 友好）
+   =========================== */
+.hz-filter-row{
+  display: grid;
+  grid-template-columns: 52px 1fr;
   gap: 10px;
-  margin: 12px 0;
+  align-items: center;
+  margin: 10px 0;
+}
+
+.hz-filter-label{
+  color: rgba(255,255,255,.65);
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .hz-wuxing-row{
@@ -1530,125 +1536,43 @@ button.small{
   flex: 0 0 auto;
   border: 1px solid rgba(255,255,255,.10);
   background: rgba(255,255,255,.03);
+  color: rgba(255,255,255,.80);
   border-radius: 999px;
-  padding: 10px 12px;
-  font-size: 14px;
+  padding: 7px 10px;
+  font-size: 12px;
   font-weight: 800;
-  letter-spacing: .2px;
+  cursor: pointer;
+  user-select: none;
   touch-action: manipulation;
+  transition: filter .12s ease, transform .12s ease, border-color .12s ease, background .12s ease;
 }
-
+.hz-pill:active{ transform: scale(.98); }
 .hz-pill.active{
-  background: rgba(255,255,255,.12);
-  border-color: rgba(255,255,255,.18);
+  border-color: rgba(215,178,106,.35);
+  background: rgba(216,182,92,.14);
+  color: rgba(255,255,255,.92);
 }
 
 .hz-stroke-row{
   display: flex;
   align-items: center;
   gap: 10px;
-  border: 1px solid rgba(255,255,255,.10);
-  background: rgba(255,255,255,.03);
-  border-radius: 12px;
-  padding: 10px 12px;
 }
-
-.hz-stroke-label{
-  font-size: 12px;
-  opacity: .75;
-  white-space: nowrap;
-}
-
 .hz-stroke-row input[type="range"]{
   flex: 1;
   min-width: 140px;
   touch-action: pan-y;
 }
-
 .hz-stroke-value{
   width: 60px;
   text-align: right;
   font-size: 14px;
-  font-weight: 900;
-  letter-spacing: .2px;
-  white-space: nowrap;
+  font-weight: 800;
+  color: rgba(255,255,255,.90);
 }
 
-.hz-clear{
-  align-self: flex-end;
-  white-space: nowrap;
-}
-
-/* 通用弹窗（底部抽屉式） */
-/* 通用弹窗（底部抽屉式）
-   注意：iOS 上“隐藏但存在的 fixed 全屏层”偶发会影响触控命中。
-   所以默认用 display:none，显示时再 display:flex（比 opacity/visibility 更稳）。 */
-.modal-overlay{
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,.55);
-  display: none;
-  align-items: flex-end;
-  justify-content: center;
-  z-index: 1300;
-}
-.modal-overlay.show{
+.hz-filter-actions{
   display: flex;
-}
-
-/* iPhone: 半透明遮罩 + 动画更容易触发大面积合成，表现为“点一下卡好几秒”。
-   这里直接用不透明遮罩 + 取消淡入，换“立刻出现”，优先保证交互。 */
-html.is-ios .modal-overlay{
-  background: #05060a;
-  transition: none;
-}
-
-.modal-card{
-  width: min(720px, 100%);
-  background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
-  border: 1px solid rgba(255,255,255,.10);
-  border-bottom: none;
-  border-radius: 16px 16px 0 0;
-  padding: 14px;
-  max-height: 82vh;
-  overflow: auto;
-  -webkit-overflow-scrolling: touch;
-}
-
-.modal-head{
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid rgba(255,255,255,.06);
-  margin-bottom: 10px;
-}
-.modal-title{
-  font-size: 16px;
-  font-weight: 900;
-  letter-spacing: .2px;
-}
-.modal-close{
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  border: 1px solid rgba(255,255,255,.10);
-  background: rgba(255,255,255,.03);
-  font-size: 22px;
-  line-height: 1;
-  touch-action: manipulation;
-}
-
-/* 让 iOS 的点击更“立即”，减少双击缩放/延迟的副作用 */
-.filter-btn,
-.mode-pill,
-.stroke-chip,
-.modal-close,
-.btn{
-  touch-action: manipulation;
-}
-
-body.modal-open{
-  overflow: hidden;
+  justify-content: flex-end;
+  margin-top: 8px;
 }

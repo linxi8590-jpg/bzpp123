@@ -458,30 +458,42 @@
         从当前启明字库（含补丁）里按<strong>五行</strong>或<strong>笔画</strong>筛选汉字。点字可复制。
       </div>
 
-      <div class="hz-filterbar">
-        <div class="hz-wuxing-row" id="hzWuxingPills" aria-label="五行筛选">
-          <button class="hz-pill active" data-wuxing="all" type="button">全部</button>
-          <button class="hz-pill" data-wuxing="金" type="button">金</button>
-          <button class="hz-pill" data-wuxing="木" type="button">木</button>
-          <button class="hz-pill" data-wuxing="水" type="button">水</button>
-          <button class="hz-pill" data-wuxing="火" type="button">火</button>
-          <button class="hz-pill" data-wuxing="土" type="button">土</button>
+            <div class="subsection">
+        <div class="subsection-title">筛选</div>
+
+        <div class="hz-filter-row">
+          <div class="hz-filter-label">五行</div>
+          <div class="hz-wuxing-row" id="hzWuxingPills">
+            <button class="hz-pill active" data-wuxing="all" type="button">全部</button>
+            <button class="hz-pill" data-wuxing="金" type="button">金</button>
+            <button class="hz-pill" data-wuxing="木" type="button">木</button>
+            <button class="hz-pill" data-wuxing="水" type="button">水</button>
+            <button class="hz-pill" data-wuxing="火" type="button">火</button>
+            <button class="hz-pill" data-wuxing="土" type="button">土</button>
+          </div>
         </div>
 
-        <div class="hz-stroke-row" aria-label="笔画筛选">
-          <div class="hz-stroke-label">笔画</div>
-          <input type="range" id="hzStrokeRange" min="0" max="30" step="1" value="0" />
-          <div class="hz-stroke-value" id="hzStrokeRangeVal">不限</div>
+        <div class="hz-filter-row">
+          <div class="hz-filter-label">笔画</div>
+          <div class="hz-stroke-row">
+            <input id="hzStrokeRange" type="range" min="0" max="30" step="1" value="0" />
+            <div class="hz-stroke-value"><span id="hzStrokeRangeVal">不限</span></div>
+          </div>
         </div>
 
-        <button class="btn ghost hz-clear" id="hzClearFiltersBtn" type="button" style="display:none;">清除</button>
+        <div class="hz-filter-actions">
+          <button class="btn ghost" id="hzClearFiltersBtn" type="button">清空筛选</button>
+        </div>
+      </div>
+
+<div class="stroke-chips" id="hzStrokeChips"></div>
       </div>
 
       <div class="hz-meta" id="hzMeta"></div>
       <div class="hz-list" id="hzList"></div>
     </div>
 
-
+    <!-- 起名/测名 -->
     <div class="panel" id="panelName">
       <div class="section-title">起名 · 五格简测（姓名直输 · 笔画可补录）</div>
       <div class="hint">
@@ -789,10 +801,7 @@
   </script>
 
   <!-- 神煞命中详情浮层（用于 ss-inline-badge 点击详情；若元素缺失会导致点击无反应） -->
-  
-  <!-- 汉字查询：已改为“内联筛选条”，不再使用弹窗（iPhone 更顺滑，也避免触控被遮罩层拦截） -->
-
-<div id="ssDetailOverlay" class="ss-detail-overlay" aria-hidden="true">
+  <div id="ssDetailOverlay" class="ss-detail-overlay" aria-hidden="true">
     <div class="ss-detail-card" role="dialog" aria-modal="true" aria-labelledby="ssDetailTitle">
       <div class="ss-detail-head">
         <div class="ss-detail-title" id="ssDetailTitle">命中详情</div>

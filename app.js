@@ -3468,36 +3468,45 @@ document.addEventListener('DOMContentLoaded', () => {
     }catch(e){}
   }
 
-    function bindEntryCards() {
-    const isIOS = !!(document.documentElement && document.documentElement.classList && document.documentElement.classList.contains('is-ios'));
+  function isIOSDevice(){
+    try{
+      const ua = navigator.userAgent || "";
+      const platform = navigator.platform || "";
+      return /iPad|iPhone|iPod/.test(ua) || (platform === "MacIntel" && (navigator.maxTouchPoints||0) > 1);
+    }catch(e){ return false; }
+  }
+
+  
+  function bindEntryCards() {
+    const isIOS = isIOSDevice();
     qsa(".entry-card[data-module]").forEach(card => {
       const fire = (e) => {
         const moduleKey = card.dataset.module;
         if (moduleKey) openModule(moduleKey);
       };
 
-      // Normal click
       card.addEventListener("click", (e) => {
-        // iOS sometimes fires both touchend + click; ignore the synthetic click
+        // iOS 上 touchend 后常会补发 click，做一次去重
         if (isIOS && card.__lastTouchTs && (Date.now() - card.__lastTouchTs) < 700) return;
         fire(e);
       });
 
-      // iOS fallback: touchend is more reliable inside PWA/WebView
       card.addEventListener("touchend", (e) => {
         if (!isIOS) return;
         card.__lastTouchTs = Date.now();
-        try{ if(e && e.cancelable) e.preventDefault(); }catch(_){ }
+        try{ if(e && e.cancelable) e.preventDefault(); }catch(_){}
         fire(e);
       }, { passive: false });
     });
+  });
+    });
   }
 
-
+  
   function bindBottomNav() {
-    const isIOS = !!(document.documentElement && document.documentElement.classList && document.documentElement.classList.contains('is-ios'));
+    const isIOS = isIOSDevice();
     qsa("#bottomNav .bottom-item").forEach(btn => {
-      const fire = (e) => {
+      const fire = () => {
         const key = btn.dataset.group;
         showGroup(key);
       };
@@ -3510,9 +3519,11 @@ document.addEventListener('DOMContentLoaded', () => {
       btn.addEventListener("touchend", (e) => {
         if (!isIOS) return;
         btn.__lastTouchTs = Date.now();
-        try{ if(e && e.cancelable) e.preventDefault(); }catch(_){ }
+        try{ if(e && e.cancelable) e.preventDefault(); }catch(_){}
         fire(e);
       }, { passive: false });
+    });
+  });
     });
   }
 
@@ -3524,7 +3535,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   
-  const UI_VERSION = "v12.3-2025-12-28-04";
+  const UI_VERSION = "v12.3-2025-12-24-06";
 
   
   // ------------------------------
