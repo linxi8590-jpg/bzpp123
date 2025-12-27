@@ -6,7 +6,7 @@
   const qsa = (s) => Array.from(document.querySelectorAll(s));
 
   let wired = false;
-  const state = { index: null, wuxing: 'all', stroke: null };
+  const state = { index: null, wuxing: 'all', stroke: null, renderToken: 0 };
 
 
   function toast(msg){
@@ -117,18 +117,30 @@
     if(el) el.textContent = text || '';
   }
 
+  // 分帧渲染：避免一次性 innerHTML 造成长任务卡顿（尤其是 iOS）
   function renderList(list, label){
     const box = qs('#hzList');
     if(!box) return;
     const arr = Array.isArray(list) ? list : [];
+
+    // 取消上一轮渲染
+    const token = ++state.renderToken;
+
     if(arr.length === 0){
       box.innerHTML = '<div class="empty-note">没有查到结果。</div>';
       renderMeta(label ? `${label}：0 字` : '0 字');
       return;
     }
-    renderMeta(label ? `${label}：${arr.length} 字` : `${arr.length} 字`);
 
-    const html = arr.map(it=>{
+    renderMeta(label ? `${label}：${arr.length} 字` : `${arr.length} 字`);
+    box.innerHTML = '<div class="hz-grid" id="hzGrid"></div>';
+    const grid = qs('#hzGrid');
+    if(!grid) return;
+
+    const BATCH = 80; // 每帧插入多少条，数字越大越快但越可能卡
+    let i = 0;
+
+    const buildItemHtml = (it)=>{
       const mean = it.mean ? it.mean : '（暂无寓意）';
       const wx = it.wuxing ? it.wuxing : '—';
       const st = it.stroke ? it.stroke : '—';
@@ -144,8 +156,19 @@
           <div class="hz-mean">${escapeHtml(mean)}</div>
         </div>
       `;
-    }).join('');
-    box.innerHTML = `<div class="hz-grid">${html}</div>`;
+    };
+
+    const step = ()=>{
+      if(token !== state.renderToken) return; // 有新渲染请求，直接停
+      const end = Math.min(i + BATCH, arr.length);
+      let html = '';
+      for(; i < end; i++) html += buildItemHtml(arr[i]);
+      grid.insertAdjacentHTML('beforeend', html);
+      if(i < arr.length) requestAnimationFrame(step);
+    };
+
+    // 让浏览器先把“关闭弹窗/更新筛选条”绘制出来，再开始塞列表
+    requestAnimationFrame(step);
   }
 
   function escapeHtml(s){
@@ -337,7 +360,7 @@
         const w = btn.dataset.wuxing;
         // 先关弹窗再渲染，避免移动端大列表渲染时“卡在弹窗里”
         closeModal('hzWuxingModal');
-        setTimeout(()=>{ try{ applyWuxing(w); }catch(err){} }, 0);
+        requestAnimationFrame(()=>{ try{ applyWuxing(w); }catch(err){} });
       });
 
       // 笔画选择
@@ -349,7 +372,7 @@
         }
         // 先关弹窗再渲染，避免渲染卡顿导致“点了没反应”
         closeModal('hzStrokeModal');
-        setTimeout(()=>{ try{ applyStroke(st); }catch(err){} }, 0);
+        requestAnimationFrame(()=>{ try{ applyStroke(st); }catch(err){} });
       };
 
       stBtn.addEventListener('click', ()=> doStrokeAndClose(stInput.value));
