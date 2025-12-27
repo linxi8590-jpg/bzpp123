@@ -6,7 +6,57 @@
   const qsa = (s) => Array.from(document.querySelectorAll(s));
 
   let wired = false;
-  const state = { index: null, wuxing: 'all', stroke: null, renderToken: 0 };
+  const state = { index: null, wuxing: 'all', stroke: null, renderToken: 0, renderPaused: false, rendering: null };
+
+
+  // iOS（含 iPadOS 伪装成 Mac）渲染/点击更容易被长任务拖慢，这里做轻量判定
+  const IS_IOS = (()=>{
+    try{
+      const ua = navigator.userAgent || '';
+      const platform = navigator.platform || '';
+      const mtp = navigator.maxTouchPoints || 0;
+      return /iP(hone|od|ad)/.test(ua) || (platform === 'MacIntel' && mtp > 1);
+    }catch(e){ return false; }
+  })();
+
+  // 统一的“轻触”事件：优先 pointerup（更快），兼容 click（更稳）
+  function onTap(el, handler){
+    if(!el || typeof handler !== 'function') return;
+    let last = 0;
+    const fire = (ev)=>{
+      const now = Date.now();
+      // pointerup + click 可能会双触发，做一次简单节流
+      if(now - last < 420) return;
+      last = now;
+      handler(ev);
+    };
+
+    try{
+      el.addEventListener('pointerup', (ev)=>{
+        const pt = ev && ev.pointerType;
+        // 仅触屏/手写笔走 pointerup；鼠标继续走 click
+        if(pt && pt !== 'touch' && pt !== 'pen') return;
+        try{ ev.preventDefault(); }catch(e){}
+        fire(ev);
+      }, { passive: false });
+    }catch(e){}
+
+    el.addEventListener('click', (ev)=> fire(ev));
+  }
+
+  function pauseRender(){
+    state.renderPaused = true;
+  }
+
+  function resumeRender(){
+    if(!state.renderPaused) return;
+    state.renderPaused = false;
+    // 如果有未完成的渐进渲染，则继续
+    if(state.rendering && state.rendering.token == state.renderToken){
+      try{ requestAnimationFrame(renderStep); }catch(e){ setTimeout(renderStep, 0); }
+    }
+  }
+
 
 
   function toast(msg){
@@ -117,7 +167,8 @@
     if(el) el.textContent = text || '';
   }
 
-  // 分帧渲染：避免一次性 innerHTML 造成长任务卡顿（尤其是 iOS）
+  // 渐进渲染：避免一次性 innerHTML 造成长任务卡顿（尤其是 iOS）
+  // 用“时间片”而不是固定 BATCH，让弹窗/点击永远有机会插队渲染
   function renderList(list, label){
     const box = qs('#hzList');
     if(!box) return;
@@ -125,6 +176,8 @@
 
     // 取消上一轮渲染
     const token = ++state.renderToken;
+    state.renderPaused = false;
+    state.rendering = null;
 
     if(arr.length === 0){
       box.innerHTML = '<div class="empty-note">没有查到结果。</div>';
@@ -137,8 +190,8 @@
     const grid = qs('#hzGrid');
     if(!grid) return;
 
-    const BATCH = 80; // 每帧插入多少条，数字越大越快但越可能卡
-    let i = 0;
+    const frameBudget = IS_IOS ? 6 : 10; // 单帧预算（ms）
+    const hardLimit  = IS_IOS ? 24 : 60; // 防止某些设备 now() 精度异常导致单帧塞太多
 
     const buildItemHtml = (it)=>{
       const mean = it.mean ? it.mean : '（暂无寓意）';
@@ -158,17 +211,43 @@
       `;
     };
 
-    const step = ()=>{
-      if(token !== state.renderToken) return; // 有新渲染请求，直接停
-      const end = Math.min(i + BATCH, arr.length);
-      let html = '';
-      for(; i < end; i++) html += buildItemHtml(arr[i]);
-      grid.insertAdjacentHTML('beforeend', html);
-      if(i < arr.length) requestAnimationFrame(step);
-    };
+    state.rendering = { token, arr, grid, i: 0, frameBudget, hardLimit, buildItemHtml };
 
-    // 让浏览器先把“关闭弹窗/更新筛选条”绘制出来，再开始塞列表
-    requestAnimationFrame(step);
+    // 让浏览器先把“切换筛选/关闭弹窗”绘制出来，再开始塞列表
+    try{ requestAnimationFrame(renderStep); }catch(e){ setTimeout(renderStep, 0); }
+  }
+
+  function renderStep(){
+    const r = state.rendering;
+    if(!r || r.token !== state.renderToken) return;
+    if(state.renderPaused) return;
+
+    const grid = r.grid;
+    if(!grid) return;
+
+    const nowFn = (typeof performance !== 'undefined' && performance && typeof performance.now === 'function')
+      ? () => performance.now()
+      : () => Date.now();
+
+    const start = nowFn();
+    let html = '';
+    let count = 0;
+
+    while(r.i < r.arr.length){
+      html += r.buildItemHtml(r.arr[r.i]);
+      r.i++;
+      count++;
+      if(count >= r.hardLimit) break;
+      if(nowFn() - start >= r.frameBudget) break;
+    }
+
+    if(html) grid.insertAdjacentHTML('beforeend', html);
+
+    if(r.i < r.arr.length){
+      try{ requestAnimationFrame(renderStep); }catch(e){ setTimeout(renderStep, 0); }
+    } else {
+      state.rendering = null;
+    }
   }
 
   function escapeHtml(s){
@@ -189,11 +268,31 @@
       chips.push(`<button class="stroke-chip" data-stroke="${i}" type="button">${i}</button>`);
     }
     wrap.innerHTML = chips.join('');
-    wrap.addEventListener('click', (e)=>{
+    let last = 0;
+    const pick = (e)=>{
       const btn = e.target && e.target.closest ? e.target.closest('button[data-stroke]') : null;
       if(!btn) return;
       const n = Number(btn.dataset.stroke);
       if(Number.isFinite(n)) onPick(n);
+    };
+
+    try{
+      wrap.addEventListener('pointerup', (e)=>{
+        const pt = e && e.pointerType;
+        if(pt && pt !== 'touch' && pt !== 'pen') return;
+        try{ e.preventDefault(); }catch(err){}
+        const now = Date.now();
+        if(now - last < 420) return;
+        last = now;
+        pick(e);
+      }, { passive: false });
+    }catch(e){}
+
+    wrap.addEventListener('click', (e)=>{
+      const now = Date.now();
+      if(now - last < 420) return;
+      last = now;
+      pick(e);
     });
   }
 
@@ -230,6 +329,7 @@
   function openModal(id){
     const overlay = typeof id === 'string' ? qs('#' + id) : id;
     if(!overlay) return;
+    pauseRender();
     overlay.dataset.openedAt = String(Date.now());
     overlay.classList.add('show');
     overlay.setAttribute('aria-hidden','false');
@@ -242,7 +342,11 @@
     overlay.classList.remove('show');
     overlay.setAttribute('aria-hidden','true');
     // 仅当没有任何弹窗显示时才解锁滚动
-    if(!qs('.modal-overlay.show')) document.body.classList.remove('modal-open');
+    if(!qs('.modal-overlay.show')) {
+      document.body.classList.remove('modal-open');
+      // 给一帧让弹窗先收起，再继续列表渲染
+      try{ requestAnimationFrame(()=> resumeRender()); }catch(e){ resumeRender(); }
+    }
   }
 
   function applyAll(){
@@ -324,12 +428,12 @@
 
     if(!wired){
       // 打开弹窗
-      openWx.addEventListener('click', (ev) => {
+      onTap(openWx, (ev) => {
         try{ ev.preventDefault(); ev.stopPropagation(); }catch(e){}
         setActiveWuxing(state.wuxing || 'all');
         openModal('hzWuxingModal');
       });
-      openSt.addEventListener('click', (ev) => {
+      onTap(openSt, (ev) => {
         try{ ev.preventDefault(); ev.stopPropagation(); }catch(e){}
         stInput.value = state.stroke ? String(state.stroke) : '';
         openModal('hzStrokeModal');
@@ -339,7 +443,7 @@
 
       // 关闭逻辑（点击遮罩或 ×）
       qsa('.modal-close[data-close]').forEach(btn=>{
-        btn.addEventListener('click', ()=>{
+        onTap(btn, ()=>{
           const id = btn.dataset.close;
           closeModal(id);
         });
@@ -348,20 +452,21 @@
         overlay.addEventListener('click', (e)=>{
           if(e.target !== overlay) return;
           const t = Number((overlay.dataset && overlay.dataset.openedAt) ? overlay.dataset.openedAt : 0);
-          if(t && (Date.now() - t) < 380) return; // 防止 iOS 触发“幽灵点击”导致刚打开就关
+          if(t && (Date.now() - t) < 650) return; // 防止 iOS 触发“幽灵点击”导致刚打开就关
           closeModal(overlay);
         });
       });
 
-      // 五行选择
-      wxOpts.addEventListener('click', (e)=>{
-        const btn = e.target && e.target.closest ? e.target.closest('button[data-wuxing]') : null;
-        if(!btn) return;
-        const w = btn.dataset.wuxing;
-        // 先关弹窗再渲染，避免移动端大列表渲染时“卡在弹窗里”
-        closeModal('hzWuxingModal');
-        requestAnimationFrame(()=>{ try{ applyWuxing(w); }catch(err){} });
+      // 五行选择（逐个按钮绑定，iOS 某些版本在滚动/重排时委托 click 容易丢）
+      qsa('#hzWuxingOptions button[data-wuxing]').forEach(btn=>{
+        onTap(btn, ()=>{
+          const w = btn.dataset.wuxing;
+          // 先关弹窗再渲染，避免移动端大列表渲染时“卡在弹窗里”
+          closeModal('hzWuxingModal');
+          requestAnimationFrame(()=>{ try{ applyWuxing(w); }catch(err){} });
+        });
       });
+
 
       // 笔画选择
       const doStrokeAndClose = (val)=>{
@@ -375,7 +480,7 @@
         requestAnimationFrame(()=>{ try{ applyStroke(st); }catch(err){} });
       };
 
-      stBtn.addEventListener('click', ()=> doStrokeAndClose(stInput.value));
+      onTap(stBtn, ()=> doStrokeAndClose(stInput.value));
       stInput.addEventListener('keydown', (ev)=>{
         if(ev.key === 'Enter') doStrokeAndClose(stInput.value);
       });
@@ -384,7 +489,7 @@
       bindCopy();
 
       if(clearBtn){
-        clearBtn.addEventListener('click', ()=> applyAll());
+        onTap(clearBtn, ()=> applyAll());
       }
 
       wired = true;
