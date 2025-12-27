@@ -1507,58 +1507,90 @@ button.small{
 }
 
 
-/* 汉字查询：短面板 + 弹窗选择 */
+/* 汉字查询：内联筛选条（iPhone 友好，不用弹窗遮罩） */
 .hz-filterbar{
   display: flex;
+  flex-direction: column;
   gap: 10px;
-  align-items: stretch;
-  flex-wrap: wrap;
   margin: 12px 0;
 }
-.filter-btn{
-  flex: 1;
-  min-width: 140px;
-  text-align: left;
+
+.hz-wuxing-row{
+  display: flex;
+  gap: 8px;
+  overflow: auto;
+  padding: 2px 0;
+  -webkit-overflow-scrolling: touch;
+}
+
+.hz-pill{
+  flex: 0 0 auto;
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.03);
+  border-radius: 999px;
+  padding: 10px 12px;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: .2px;
+  touch-action: manipulation;
+}
+
+.hz-pill.active{
+  background: rgba(255,255,255,.12);
+  border-color: rgba(255,255,255,.18);
+}
+
+.hz-stroke-row{
+  display: flex;
+  align-items: center;
+  gap: 10px;
   border: 1px solid rgba(255,255,255,.10);
   background: rgba(255,255,255,.03);
   border-radius: 12px;
-  padding: 12px;
-  touch-action: manipulation;
+  padding: 10px 12px;
 }
-.filter-label{
+
+.hz-stroke-label{
   font-size: 12px;
   opacity: .75;
-  margin-bottom: 6px;
+  white-space: nowrap;
 }
-.filter-value{
-  font-size: 16px;
-  font-weight: 800;
+
+.hz-stroke-row input[type="range"]{
+  flex: 1;
+  min-width: 140px;
+  touch-action: pan-y;
+}
+
+.hz-stroke-value{
+  width: 60px;
+  text-align: right;
+  font-size: 14px;
+  font-weight: 900;
   letter-spacing: .2px;
+  white-space: nowrap;
 }
+
 .hz-clear{
+  align-self: flex-end;
   white-space: nowrap;
 }
 
 /* 通用弹窗（底部抽屉式） */
+/* 通用弹窗（底部抽屉式）
+   注意：iOS 上“隐藏但存在的 fixed 全屏层”偶发会影响触控命中。
+   所以默认用 display:none，显示时再 display:flex（比 opacity/visibility 更稳）。 */
 .modal-overlay{
   position: fixed;
   inset: 0;
   background: rgba(0,0,0,.55);
-  display: flex;
+  display: none;
   align-items: flex-end;
   justify-content: center;
   z-index: 1300;
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
-  will-change: opacity;
-  transform: translateZ(0);
-  transition: opacity .12s ease;
 }
 .modal-overlay.show{
-  opacity: 1;
-  visibility: visible;
-  pointer-events: auto;
+  display: flex;
 }
 
 /* iPhone: 半透明遮罩 + 动画更容易触发大面积合成，表现为“点一下卡好几秒”。

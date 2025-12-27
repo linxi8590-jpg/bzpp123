@@ -155,24 +155,31 @@
 
   
   function setActiveWuxing(w){
-    qsa('#hzWuxingOptions .mode-pill').forEach(btn=>{
-      const k = btn.dataset.wuxing;
-      btn.classList.toggle('active', String(k) === String(w));
+    const cur = (w && w !== 'all') ? String(w) : 'all';
+    qsa('#hzWuxingPills .hz-pill').forEach(btn=>{
+      const k = String(btn.dataset.wuxing || 'all');
+      btn.classList.toggle('active', k === cur);
     });
   }
 
+  function strokeText(v){
+    const n = Number(v);
+    return (Number.isFinite(n) && n > 0) ? `${Math.round(n)} 画` : '不限';
+  }
+
   function setFilterUI(){
-    const wxEl = qs('#hzWuxingValue');
-    const stEl = qs('#hzStrokeValue');
+    const stRange = qs('#hzStrokeRange');
+    const stVal = qs('#hzStrokeRangeVal');
     const clearBtn = qs('#hzClearFiltersBtn');
 
-    const wxText = (state.wuxing && state.wuxing !== 'all') ? state.wuxing : '全部';
-    const stText = (state.stroke && Number.isFinite(state.stroke)) ? `${state.stroke} 画` : '不限';
+    const stNum = (state.stroke && Number.isFinite(state.stroke)) ? Math.round(state.stroke) : 0;
+    if(stRange){
+      const cur = Number(stRange.value);
+      if(!Number.isFinite(cur) || cur !== stNum) stRange.value = String(stNum);
+    }
+    if(stVal) stVal.textContent = strokeText(stNum);
 
-    if(wxEl) wxEl.textContent = wxText;
-    if(stEl) stEl.textContent = stText;
-
-    const hasFilter = (state.wuxing && state.wuxing !== 'all') || (state.stroke && Number.isFinite(state.stroke));
+    const hasFilter = (state.wuxing && state.wuxing !== 'all') || stNum > 0;
     if(clearBtn) clearBtn.style.display = hasFilter ? '' : 'none';
   }
 
@@ -386,60 +393,56 @@
     }
   }
 
-  function applyAll(){
+  function applyFilters(){
     const idx = state.index;
     if(!idx) return;
+
+    let arr = idx.items;
+    const parts = [];
+
+    if(state.wuxing && state.wuxing !== 'all'){
+      const w = String(state.wuxing);
+      arr = (idx.byWuxing && idx.byWuxing[w]) ? idx.byWuxing[w] : [];
+      parts.push(`五行·${w}`);
+    }
+
+    if(state.stroke && Number.isFinite(state.stroke)){
+      const st = Math.round(state.stroke);
+      if(state.wuxing && state.wuxing !== 'all'){
+        // 已经选了五行，直接在该子集上再筛一次笔画
+        arr = (Array.isArray(arr) ? arr : []).filter(it => (it.stroke || 0) === st);
+      } else {
+        arr = idx.byStroke.get(st) || [];
+      }
+      parts.push(`笔画·${st}`);
+    }
+
+    const label = parts.length ? parts.join(' + ') : '全部';
+    renderList(arr, label);
+  }
+
+  function applyAll(){
     state.wuxing = 'all';
     state.stroke = null;
     setActiveWuxing('all');
     setFilterUI();
-    renderList(idx.items, '全部');
+    applyFilters();
   }
 
   function applyWuxing(w){
-    const idx = state.index;
-    if(!idx) return;
-    state.stroke = null;
-
-    if(!w || w === 'all'){
-      state.wuxing = 'all';
-      setActiveWuxing('all');
-      setFilterUI();
-      renderList(idx.items, '全部');
-      return;
-    }
-
-    state.wuxing = String(w);
-    setActiveWuxing(String(w));
+    state.wuxing = (w && w !== 'all') ? String(w) : 'all';
+    setActiveWuxing(state.wuxing);
     setFilterUI();
-    // byWuxing 是普通对象（非 Map），不要用 .get()
-    const arr = (idx.byWuxing && idx.byWuxing[String(w)]) ? idx.byWuxing[String(w)] : [];
-    renderList(arr, `五行·${String(w)}`);
+    applyFilters();
   }
 
-  function applyStroke(n){
-    const idx = state.index;
-    if(!idx) return;
-
-    const num = Number(n);
-    if(!Number.isFinite(num) || num < 1){
-      toast('请输入正确的笔画数字');
-      return false;
-    }
+  function applyStroke(v){
+    const num = Number(v);
+    if(!Number.isFinite(num) || num < 0) return;
     const st = Math.round(num);
-    state.wuxing = 'all';
-    state.stroke = st;
-    setActiveWuxing('all');
+    state.stroke = st > 0 ? st : null;
     setFilterUI();
-    const arr = idx.byStroke.get(st) || [];
-    renderList(arr, `笔画·${st}`);
-    return true;
-  }
-
-  function normalizeStrokeInput(val){
-    const num = Number(val);
-    if(!Number.isFinite(num) || num < 1) return null;
-    return Math.round(num);
+    applyFilters();
   }
 
   async function setupHanziModule(){
@@ -456,99 +459,55 @@
       state.index = buildIndex();
     }
 
-    const openWx = qs('#hzOpenWuxing');
-    const openSt = qs('#hzOpenStroke');
+    const pills = qsa('#hzWuxingPills .hz-pill');
+    const strokeRange = qs('#hzStrokeRange');
+    const strokeVal = qs('#hzStrokeRangeVal');
     const clearBtn = qs('#hzClearFiltersBtn');
 
-    const wxModal = qs('#hzWuxingModal');
-    const stModal = qs('#hzStrokeModal');
-    const wxOpts = qs('#hzWuxingOptions');
-    const stInput = qs('#hzStrokeModalInput');
-    const stBtn = qs('#hzStrokeModalSearchBtn');
-
-    if(!openWx || !openSt || !wxModal || !stModal || !wxOpts || !stInput || !stBtn) return;
+    if(!pills.length || !strokeRange || !strokeVal || !clearBtn) return;
 
     // 每次打开刷新 UI
     setActiveWuxing(state.wuxing || 'all');
     setFilterUI();
 
     if(!wired){
-      // 打开弹窗
-      onTap(openWx, (ev) => {
-        try{ ev.preventDefault(); ev.stopPropagation(); }catch(e){}
-        setActiveWuxing(state.wuxing || 'all');
-        openModal('hzWuxingModal');
-      });
-      onTap(openSt, (ev) => {
-        try{ ev.preventDefault(); ev.stopPropagation(); }catch(e){}
-        stInput.value = state.stroke ? String(state.stroke) : '';
-        openModal('hzStrokeModal');
-        // iOS: 稍后再 focus 更稳
-        setTimeout(()=> { try{ stInput.focus(); }catch(e){} }, 80);
-      });
-
-      // 关闭逻辑（点击遮罩或 ×）
-      qsa('.modal-close[data-close]').forEach(btn=>{
+      // 五行：胶囊按钮
+      pills.forEach(btn=>{
         onTap(btn, ()=>{
-          const id = btn.dataset.close;
-          closeModal(id);
-        });
-      });
-      [wxModal, stModal].forEach(overlay=>{
-        overlay.addEventListener('click', (e)=>{
-          if(e.target !== overlay) return;
-          const t = Number((overlay.dataset && overlay.dataset.openedAt) ? overlay.dataset.openedAt : 0);
-          if(t && (Date.now() - t) < 650) return; // 防止 iOS 触发“幽灵点击”导致刚打开就关
-          closeModal(overlay);
+          const w = btn.dataset.wuxing || 'all';
+          state.wuxing = (w && w !== 'all') ? String(w) : 'all';
+          setActiveWuxing(state.wuxing);
+          setFilterUI();
+          requestAnimationFrame(()=>{ try{ applyFilters(); }catch(e){} });
         });
       });
 
-      // 五行选择（逐个按钮绑定，iOS 某些版本在滚动/重排时委托 click 容易丢）
-      qsa('#hzWuxingOptions button[data-wuxing]').forEach(btn=>{
-        onTap(btn, ()=>{
-          const w = btn.dataset.wuxing;
-          // 先关弹窗再渲染，避免移动端大列表渲染时“卡在弹窗里”
-          closeModal('hzWuxingModal');
-          requestAnimationFrame(()=>{ try{ applyWuxing(w); }catch(err){} });
-        });
+      // 笔画：拖动条
+      strokeRange.addEventListener('input', ()=>{
+        // 只更新显示，不做筛选（拖动时避免反复重渲染）
+        try{ strokeVal.textContent = strokeText(strokeRange.value); }catch(e){}
+        const hasFilter = (state.wuxing && state.wuxing !== 'all') || Number(strokeRange.value) > 0;
+        clearBtn.style.display = hasFilter ? '' : 'none';
+      }, { passive: true });
+
+      strokeRange.addEventListener('change', ()=>{
+        // 松手再筛选，手感更丝滑
+        applyStroke(strokeRange.value);
+      }, { passive: true });
+
+      onTap(clearBtn, ()=>{
+        // 复位 UI
+        strokeRange.value = '0';
+        strokeVal.textContent = '不限';
+        applyAll();
       });
 
-
-      // 笔画选择
-      const doStrokeAndClose = (val)=>{
-        const st = normalizeStrokeInput(val);
-        if(!st){
-          toast('请输入正确的笔画数字');
-          return;
-        }
-        // 先关弹窗再渲染，避免渲染卡顿导致“点了没反应”
-        closeModal('hzStrokeModal');
-        requestAnimationFrame(()=>{ try{ applyStroke(st); }catch(err){} });
-      };
-
-      onTap(stBtn, ()=> doStrokeAndClose(stInput.value));
-      stInput.addEventListener('keydown', (ev)=>{
-        if(ev.key === 'Enter') doStrokeAndClose(stInput.value);
-      });
-
-      wireChips('#hzStrokeModalChips', (n)=> doStrokeAndClose(n));
       bindCopy();
-
-      if(clearBtn){
-        onTap(clearBtn, ()=> applyAll());
-      }
-
       wired = true;
     }
 
-    // 初始显示：按当前状态（默认全部）
-    if(state.stroke && Number.isFinite(state.stroke)){
-      applyStroke(state.stroke);
-    } else if(state.wuxing && state.wuxing !== 'all'){
-      applyWuxing(state.wuxing);
-    } else {
-      applyAll();
-    }
+    // 初始显示：按当前状态
+    applyFilters();
   }
 
 
