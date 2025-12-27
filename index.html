@@ -458,32 +458,25 @@
         从当前启明字库（含补丁）里按<strong>五行</strong>或<strong>笔画</strong>筛选汉字。点字可复制。
       </div>
 
-      <div class="subsection">
-        <div class="subsection-title">五行查法</div>
-        <div class="wuxing-row" id="hzWuxingRow">
-          <button class="mode-pill" data-wuxing="金" type="button">金</button>
-          <button class="mode-pill" data-wuxing="木" type="button">木</button>
-          <button class="mode-pill" data-wuxing="水" type="button">水</button>
-          <button class="mode-pill" data-wuxing="火" type="button">火</button>
-          <button class="mode-pill" data-wuxing="土" type="button">土</button>
-          <button class="mode-pill ghost" data-wuxing="all" type="button">全部</button>
-        </div>
-      </div>
+      <div class="hz-filterbar">
+        <button class="filter-btn" id="hzOpenWuxing" type="button" aria-haspopup="dialog" aria-controls="hzWuxingModal">
+          <div class="filter-label">五行</div>
+          <div class="filter-value" id="hzWuxingValue">全部</div>
+        </button>
 
-      <div class="subsection">
-        <div class="subsection-title">笔画查法</div>
-        <div class="stroke-row">
-          <input id="hzStrokeInput" class="search-input" inputmode="numeric" pattern="[0-9]*" placeholder="输入笔画（如 8）" />
-          <button class="btn" id="hzStrokeSearchBtn" type="button">查询</button>
-        </div>
-        <div class="stroke-chips" id="hzStrokeChips"></div>
+        <button class="filter-btn" id="hzOpenStroke" type="button" aria-haspopup="dialog" aria-controls="hzStrokeModal">
+          <div class="filter-label">笔画</div>
+          <div class="filter-value" id="hzStrokeValue">不限</div>
+        </button>
+
+        <button class="btn ghost hz-clear" id="hzClearFiltersBtn" type="button">清除</button>
       </div>
 
       <div class="hz-meta" id="hzMeta"></div>
       <div class="hz-list" id="hzList"></div>
     </div>
 
-    <!-- 起名/测名 -->
+
     <div class="panel" id="panelName">
       <div class="section-title">起名 · 五格简测（姓名直输 · 笔画可补录）</div>
       <div class="hint">
@@ -791,7 +784,41 @@
   </script>
 
   <!-- 神煞命中详情浮层（用于 ss-inline-badge 点击详情；若元素缺失会导致点击无反应） -->
-  <div id="ssDetailOverlay" class="ss-detail-overlay" aria-hidden="true">
+  
+  <!-- 汉字查询：选择弹窗 -->
+  <div class="modal-overlay" id="hzWuxingModal" aria-hidden="true">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="hzWuxingTitle">
+      <div class="modal-head">
+        <div class="modal-title" id="hzWuxingTitle">选择五行</div>
+        <button class="modal-close" type="button" data-close="hzWuxingModal" aria-label="关闭">×</button>
+      </div>
+      <div class="wuxing-row" id="hzWuxingOptions">
+        <button class="mode-pill" data-wuxing="金" type="button">金</button>
+        <button class="mode-pill" data-wuxing="木" type="button">木</button>
+        <button class="mode-pill" data-wuxing="水" type="button">水</button>
+        <button class="mode-pill" data-wuxing="火" type="button">火</button>
+        <button class="mode-pill" data-wuxing="土" type="button">土</button>
+        <button class="mode-pill ghost" data-wuxing="all" type="button">全部</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="hzStrokeModal" aria-hidden="true">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="hzStrokeTitle">
+      <div class="modal-head">
+        <div class="modal-title" id="hzStrokeTitle">选择笔画</div>
+        <button class="modal-close" type="button" data-close="hzStrokeModal" aria-label="关闭">×</button>
+      </div>
+
+      <div class="stroke-row">
+        <input id="hzStrokeModalInput" class="search-input" inputmode="numeric" pattern="[0-9]*" placeholder="输入笔画（如 8）" />
+        <button class="btn" id="hzStrokeModalSearchBtn" type="button">查询</button>
+      </div>
+      <div class="stroke-chips" id="hzStrokeModalChips"></div>
+    </div>
+  </div>
+
+<div id="ssDetailOverlay" class="ss-detail-overlay" aria-hidden="true">
     <div class="ss-detail-card" role="dialog" aria-modal="true" aria-labelledby="ssDetailTitle">
       <div class="ss-detail-head">
         <div class="ss-detail-title" id="ssDetailTitle">命中详情</div>

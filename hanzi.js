@@ -6,6 +6,8 @@
   const qsa = (s) => Array.from(document.querySelectorAll(s));
 
   let wired = false;
+  const state = { index: null, wuxing: 'all', stroke: null };
+
 
   function toast(msg){
     try{
@@ -87,11 +89,27 @@
     return { items, byWuxing, byStroke };
   }
 
+  
   function setActiveWuxing(w){
-    qsa('#hzWuxingRow .mode-pill').forEach(btn=>{
+    qsa('#hzWuxingOptions .mode-pill').forEach(btn=>{
       const k = btn.dataset.wuxing;
       btn.classList.toggle('active', String(k) === String(w));
     });
+  }
+
+  function setFilterUI(){
+    const wxEl = qs('#hzWuxingValue');
+    const stEl = qs('#hzStrokeValue');
+    const clearBtn = qs('#hzClearFiltersBtn');
+
+    const wxText = (state.wuxing && state.wuxing !== 'all') ? state.wuxing : '全部';
+    const stText = (state.stroke && Number.isFinite(state.stroke)) ? `${state.stroke} 画` : '不限';
+
+    if(wxEl) wxEl.textContent = wxText;
+    if(stEl) stEl.textContent = stText;
+
+    const hasFilter = (state.wuxing && state.wuxing !== 'all') || (state.stroke && Number.isFinite(state.stroke));
+    if(clearBtn) clearBtn.style.display = hasFilter ? '' : 'none';
   }
 
   function renderMeta(text){
@@ -139,8 +157,8 @@
       .replace(/'/g,'&#39;');
   }
 
-  function wireChips(onPick){
-    const wrap = qs('#hzStrokeChips');
+  function wireChips(wrapSel, onPick){
+    const wrap = qs(wrapSel);
     if(!wrap) return;
     const max = 30;
     const chips = [];
@@ -165,12 +183,20 @@
       const ch = item.dataset.ch;
       if(!ch) return;
       try{
-        const text = ch;
-        if(navigator.clipboard && navigator.clipboard.writeText) {
-          await navigator.clipboard.writeText(text);
+        if(navigator.clipboard && navigator.clipboard.writeText){
+          await navigator.clipboard.writeText(ch);
           toast('已复制：' + ch);
         } else {
-          toast('复制失败：' + ch);
+          const ta = document.createElement('textarea');
+          ta.value = ch;
+          ta.style.position = 'fixed';
+          ta.style.left = '-9999px';
+          document.body.appendChild(ta);
+          ta.select();
+          const ok = document.execCommand('copy');
+          document.body.removeChild(ta);
+          if(ok) toast('已复制：' + ch);
+          else toast('复制失败：' + ch);
         }
       }catch(err){
         toast('复制失败：' + ch);
@@ -178,60 +204,158 @@
     });
   }
 
+  function openModal(id){
+    const overlay = typeof id === 'string' ? qs('#' + id) : id;
+    if(!overlay) return;
+    overlay.classList.add('show');
+    overlay.setAttribute('aria-hidden','false');
+    document.body.classList.add('modal-open');
+  }
+
+  function closeModal(id){
+    const overlay = typeof id === 'string' ? qs('#' + id) : id;
+    if(!overlay) return;
+    overlay.classList.remove('show');
+    overlay.setAttribute('aria-hidden','true');
+    // 仅当没有任何弹窗显示时才解锁滚动
+    if(!qs('.modal-overlay.show')) document.body.classList.remove('modal-open');
+  }
+
+  function applyAll(){
+    const idx = state.index;
+    if(!idx) return;
+    state.wuxing = 'all';
+    state.stroke = null;
+    setActiveWuxing('all');
+    setFilterUI();
+    renderList(idx.items, '全部');
+  }
+
+  function applyWuxing(w){
+    const idx = state.index;
+    if(!idx) return;
+    state.stroke = null;
+
+    if(!w || w === 'all'){
+      state.wuxing = 'all';
+      setActiveWuxing('all');
+      setFilterUI();
+      renderList(idx.items, '全部');
+      return;
+    }
+
+    state.wuxing = String(w);
+    setActiveWuxing(String(w));
+    setFilterUI();
+    const arr = idx.byWuxing.get(String(w)) || [];
+    renderList(arr, `五行·${String(w)}`);
+  }
+
+  function applyStroke(n){
+    const idx = state.index;
+    if(!idx) return;
+
+    const num = Number(n);
+    if(!Number.isFinite(num) || num < 1){
+      toast('请输入正确的笔画数字');
+      return false;
+    }
+    const st = Math.round(num);
+    state.wuxing = 'all';
+    state.stroke = st;
+    setActiveWuxing('all');
+    setFilterUI();
+    const arr = idx.byStroke.get(st) || [];
+    renderList(arr, `笔画·${st}`);
+    return true;
+  }
+
   async function setupHanziModule(){
     // 每次打开都尽量拉一次补丁，确保查询吃到最新数据
     await ensureDBReady();
-    const index = buildIndex();
+    state.index = buildIndex();
 
-    const row = qs('#hzWuxingRow');
-    const strokeInput = qs('#hzStrokeInput');
-    const strokeBtn = qs('#hzStrokeSearchBtn');
+    const openWx = qs('#hzOpenWuxing');
+    const openSt = qs('#hzOpenStroke');
+    const clearBtn = qs('#hzClearFiltersBtn');
 
-    if(!row || !strokeInput || !strokeBtn) return;
+    const wxModal = qs('#hzWuxingModal');
+    const stModal = qs('#hzStrokeModal');
+    const wxOpts = qs('#hzWuxingOptions');
+    const stInput = qs('#hzStrokeModalInput');
+    const stBtn = qs('#hzStrokeModalSearchBtn');
+
+    if(!openWx || !openSt || !wxModal || !stModal || !wxOpts || !stInput || !stBtn) return;
+
+    // 每次打开刷新 UI
+    setActiveWuxing(state.wuxing || 'all');
+    setFilterUI();
 
     if(!wired){
-      row.addEventListener('click', (e)=>{
+      // 打开弹窗
+      openWx.addEventListener('click', ()=>{
+        setActiveWuxing(state.wuxing || 'all');
+        openModal('hzWuxingModal');
+      });
+      openSt.addEventListener('click', ()=>{
+        stInput.value = state.stroke ? String(state.stroke) : '';
+        openModal('hzStrokeModal');
+        // iOS: 稍后再 focus 更稳
+        setTimeout(()=> { try{ stInput.focus(); }catch(e){} }, 80);
+      });
+
+      // 关闭逻辑（点击遮罩或 ×）
+      qsa('.modal-close[data-close]').forEach(btn=>{
+        btn.addEventListener('click', ()=>{
+          const id = btn.dataset.close;
+          closeModal(id);
+        });
+      });
+      [wxModal, stModal].forEach(overlay=>{
+        overlay.addEventListener('click', (e)=>{
+          if(e.target === overlay) closeModal(overlay);
+        });
+      });
+
+      // 五行选择
+      wxOpts.addEventListener('click', (e)=>{
         const btn = e.target && e.target.closest ? e.target.closest('button[data-wuxing]') : null;
         if(!btn) return;
-        const w = btn.dataset.wuxing;
-        if(w === 'all') {
-          setActiveWuxing('all');
-          renderList(index.items, '全部');
-          return;
-        }
-        setActiveWuxing(w);
-        const arr = index.byWuxing[normWuxing(w)] || [];
-        renderList(arr, `五行·${w}`);
+        applyWuxing(btn.dataset.wuxing);
+        closeModal('hzWuxingModal');
       });
 
-      const doStroke = (n)=>{
-        const num = Number(n);
-        if(!Number.isFinite(num) || num < 1) {
-          toast('请输入正确的笔画数字');
-          return;
-        }
-        strokeInput.value = String(Math.round(num));
-        const arr = index.byStroke.get(Math.round(num)) || [];
-        // 触发五行按钮取消高亮
-        setActiveWuxing('');
-        renderList(arr, `笔画·${Math.round(num)}`);
+      // 笔画选择
+      const doStrokeAndClose = (val)=>{
+        const ok = applyStroke(val);
+        if(ok) closeModal('hzStrokeModal');
       };
 
-      strokeBtn.addEventListener('click', ()=> doStroke(strokeInput.value));
-      strokeInput.addEventListener('keydown', (ev)=>{
-        if(ev.key === 'Enter') doStroke(strokeInput.value);
+      stBtn.addEventListener('click', ()=> doStrokeAndClose(stInput.value));
+      stInput.addEventListener('keydown', (ev)=>{
+        if(ev.key === 'Enter') doStrokeAndClose(stInput.value);
       });
 
-      wireChips(doStroke);
+      wireChips('#hzStrokeModalChips', (n)=> doStrokeAndClose(n));
       bindCopy();
+
+      if(clearBtn){
+        clearBtn.addEventListener('click', ()=> applyAll());
+      }
 
       wired = true;
     }
 
-    // 初始显示：全部（但不自动高亮五行，避免误导）
-    renderList(index.items, '全部');
-    setActiveWuxing('all');
+    // 初始显示：按当前状态（默认全部）
+    if(state.stroke && Number.isFinite(state.stroke)){
+      applyStroke(state.stroke);
+    } else if(state.wuxing && state.wuxing !== 'all'){
+      applyWuxing(state.wuxing);
+    } else {
+      applyAll();
+    }
   }
+
 
   global.setupHanziModule = setupHanziModule;
 
