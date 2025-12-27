@@ -53,6 +53,20 @@ function mergeQimingPatch(patch){
   try{
     if(!patch) return;
     const map = (patch.chars && typeof patch.chars === 'object') ? patch.chars : patch;
+    // 统计补丁信息（用于“字库状态”）
+    try{
+      const baseKeys = window.__QIMING_BASE_KEYS || [];
+      if(!window.__QIMING_BASE_KEYSET) window.__QIMING_BASE_KEYSET = new Set(baseKeys);
+      const baseSet = window.__QIMING_BASE_KEYSET;
+      const keys = Object.keys(map || {});
+      let newCount = 0, overrideCount = 0;
+      keys.forEach(k=>{
+        if(baseSet && baseSet.has(k)) overrideCount++;
+        else newCount++;
+      });
+      window.__QIMING_PATCH_META = { count: keys.length, newCount, overrideCount, mergedAt: Date.now() };
+    }catch(e){}
+
     if(!map || typeof map !== 'object') return;
 
     Object.keys(map).forEach((ch)=>{
@@ -78,6 +92,14 @@ function mergeQimingPatch(patch){
       }
     });
   }catch(e){}
+
+    // 通知字库数据中心刷新索引/统计
+    try{
+      if(window.CharDBCenter && typeof window.CharDBCenter.onPatchMerged === 'function'){
+        window.CharDBCenter.onPatchMerged(window.__QIMING_PATCH_META || null);
+      }
+    }catch(e){}
+
 }
 
 async function loadRemoteQimingPatch(){

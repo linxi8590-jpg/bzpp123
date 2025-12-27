@@ -642,7 +642,52 @@
           </div>
         </div>
 
-        <div class="card me-card">
+        
+        <div class="card me-card" id="meCharDbCard">
+          <div class="section-title" style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+            <span>字库状态</span>
+            <button class="btn secondary" id="btnCharDbRebuild" type="button">重新加载/校验</button>
+          </div>
+
+          <div class="me-kv">
+            <div class="me-kv-row">
+              <span class="me-k">基础字数</span>
+              <span class="me-v mono" id="charDbBaseCount">-</span>
+            </div>
+            <div class="me-kv-row">
+              <span class="me-k">补丁字数</span>
+              <span class="me-v mono" id="charDbPatchCount">-</span>
+            </div>
+            <div class="me-kv-row">
+              <span class="me-k">其中新增</span>
+              <span class="me-v mono" id="charDbPatchNew">-</span>
+            </div>
+            <div class="me-kv-row">
+              <span class="me-k">覆盖更新</span>
+              <span class="me-v mono" id="charDbPatchOverride">-</span>
+            </div>
+            <div class="me-kv-row">
+              <span class="me-k">合并总字数</span>
+              <span class="me-v mono" id="charDbMergedCount">-</span>
+            </div>
+            <div class="me-kv-row">
+              <span class="me-k">缺五行</span>
+              <span class="me-v mono" id="charDbMissingWuxing">-</span>
+            </div>
+            <div class="me-kv-row">
+              <span class="me-k">缺笔画</span>
+              <span class="me-v mono" id="charDbMissingStroke">-</span>
+            </div>
+            <div class="me-kv-row">
+              <span class="me-k">缺寓意</span>
+              <span class="me-v mono" id="charDbMissingMean">-</span>
+            </div>
+          </div>
+
+          <div class="hint small-hint" id="charDbIssuesHint">-</div>
+        </div>
+
+<div class="card me-card">
           <div class="section-title">维护工具</div>
           <div class="me-actions">
             <button class="btn secondary" id="btnSoftReload" type="button">仅刷新页面</button>

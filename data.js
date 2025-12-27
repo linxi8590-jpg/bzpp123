@@ -1570,3 +1570,11 @@ const SHU_LI_81 = {
   81: { luck: "大吉", text: "最极之数，还本归元，能得繁荣，发达成功。" }
 };
 
+
+
+/* ====== 字库数据中心：基础字库快照（仅用于统计，不参与合并） ====== */
+try{
+  if(typeof QIMING_CHAR_DB !== 'undefined' && QIMING_CHAR_DB && !window.__QIMING_BASE_KEYS){
+    window.__QIMING_BASE_KEYS = Object.keys(QIMING_CHAR_DB);
+  }
+}catch(e){}

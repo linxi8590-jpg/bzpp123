@@ -223,6 +223,20 @@
     if(!obj || typeof obj !== 'object') return;
     const chars = (obj.chars && typeof obj.chars === 'object') ? obj.chars : null;
     if(!chars) return;
+
+    // 统计补丁信息（用于“字库状态”）
+    try{
+      const baseKeys = window.__QIMING_BASE_KEYS || [];
+      if(!window.__QIMING_BASE_KEYSET) window.__QIMING_BASE_KEYSET = new Set(baseKeys);
+      const baseSet = window.__QIMING_BASE_KEYSET;
+      const keys = Object.keys(chars);
+      let newCount = 0, overrideCount = 0;
+      keys.forEach(k=>{
+        if(baseSet && baseSet.has(k)) overrideCount++;
+        else newCount++;
+      });
+      window.__QIMING_PATCH_META = { count: keys.length, newCount, overrideCount, mergedAt: Date.now() };
+    }catch(e){}
     try{
       if(typeof QIMING_CHAR_DB === 'undefined' || !QIMING_CHAR_DB) return;
       const db = QIMING_CHAR_DB;
@@ -237,6 +251,13 @@
           }
         }
       });
+
+      // 通知字库数据中心刷新索引/统计
+      try{
+        if(window.CharDBCenter && typeof window.CharDBCenter.onPatchMerged === 'function'){
+          window.CharDBCenter.onPatchMerged(window.__QIMING_PATCH_META || null);
+        }
+      }catch(e){}
     }catch(e){}
   }
 
@@ -451,6 +472,13 @@
         h: solar.getHour(),
         min: solar.getMinute ? solar.getMinute() : Number(els.minuteRange.value || 0)
       });
+
+      // 通知字库数据中心刷新索引/统计
+      try{
+        if(window.CharDBCenter && typeof window.CharDBCenter.onPatchMerged === 'function'){
+          window.CharDBCenter.onPatchMerged(window.__QIMING_PATCH_META || null);
+        }
+      }catch(e){}
     }catch(e){}
   }
 
@@ -2623,6 +2651,10 @@ const timeStr = els.minuteToggle.checked ? `${pad2(h)}:${pad2(min)}` : `${pad2(h
   function switchTab(which){
     if(which === 'name' && typeof setupNameModule === 'function'){ setupNameModule(); }
     if(which === 'hanzi' && typeof setupHanziModule === 'function'){ setupHanziModule(); }
+    if(which === 'metools'){
+      try{ if(window.CharDBCenter && typeof window.CharDBCenter.rebuildWithPatch === 'function') { window.CharDBCenter.rebuildWithPatch(); } }
+      catch(e){}
+    }
     const map = {
       bazi: [els.tabBazi, els.panelBazi],
       jieqi: [els.tabJieqi, els.panelJieqi],
@@ -3462,7 +3494,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   
-  const UI_VERSION = "v12.3-2025-12-24-05";
+  const UI_VERSION = "v12.3-2025-12-24-06";
 
   
   // ------------------------------
@@ -3889,6 +3921,31 @@ function initMeTools() {
 
     // 内嵌补丁编辑器（在“我的”页）
     initMePatchEditor();
+
+    // 字库状态（数据中心）
+    try{
+      const rebuildBtn = qs('#btnCharDbRebuild');
+      if(rebuildBtn && !alreadyBound(rebuildBtn)){
+        rebuildBtn.addEventListener('click', async ()=>{
+          try{
+            if(window.CharDBCenter && typeof window.CharDBCenter.rebuildWithPatch === 'function'){
+              await window.CharDBCenter.rebuildWithPatch();
+              try{ if(typeof showToast==='function') showToast('字库已重新加载/校验。'); }catch(e){}
+            }
+          }catch(e){}
+        });
+        markBound(rebuildBtn);
+      }
+      // 进入“我的工具”时，尽量展示一次状态（不阻塞）
+      setTimeout(()=>{
+        try{
+          if(window.CharDBCenter && typeof window.CharDBCenter.render === 'function'){
+            window.CharDBCenter.render();
+          }
+        }catch(e){}
+      }, 0);
+    }catch(e){}
+
 }
 
 function initGroupUI() {
