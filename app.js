@@ -3468,21 +3468,51 @@ document.addEventListener('DOMContentLoaded', () => {
     }catch(e){}
   }
 
-  function bindEntryCards() {
+    function bindEntryCards() {
+    const isIOS = !!(document.documentElement && document.documentElement.classList && document.documentElement.classList.contains('is-ios'));
     qsa(".entry-card[data-module]").forEach(card => {
-      card.addEventListener("click", () => {
+      const fire = (e) => {
         const moduleKey = card.dataset.module;
         if (moduleKey) openModule(moduleKey);
+      };
+
+      // Normal click
+      card.addEventListener("click", (e) => {
+        // iOS sometimes fires both touchend + click; ignore the synthetic click
+        if (isIOS && card.__lastTouchTs && (Date.now() - card.__lastTouchTs) < 700) return;
+        fire(e);
       });
+
+      // iOS fallback: touchend is more reliable inside PWA/WebView
+      card.addEventListener("touchend", (e) => {
+        if (!isIOS) return;
+        card.__lastTouchTs = Date.now();
+        try{ if(e && e.cancelable) e.preventDefault(); }catch(_){ }
+        fire(e);
+      }, { passive: false });
     });
   }
 
+
   function bindBottomNav() {
+    const isIOS = !!(document.documentElement && document.documentElement.classList && document.documentElement.classList.contains('is-ios'));
     qsa("#bottomNav .bottom-item").forEach(btn => {
-      btn.addEventListener("click", () => {
+      const fire = (e) => {
         const key = btn.dataset.group;
         showGroup(key);
+      };
+
+      btn.addEventListener("click", (e) => {
+        if (isIOS && btn.__lastTouchTs && (Date.now() - btn.__lastTouchTs) < 700) return;
+        fire(e);
       });
+
+      btn.addEventListener("touchend", (e) => {
+        if (!isIOS) return;
+        btn.__lastTouchTs = Date.now();
+        try{ if(e && e.cancelable) e.preventDefault(); }catch(_){ }
+        fire(e);
+      }, { passive: false });
     });
   }
 
@@ -3494,7 +3524,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   
-  const UI_VERSION = "v12.3-2025-12-27-04";
+  const UI_VERSION = "v12.3-2025-12-28-04";
 
   
   // ------------------------------

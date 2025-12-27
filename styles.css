@@ -830,8 +830,9 @@ display: none;
   align-items: flex-end;
   justify-content: center;
   z-index: 1200;
+  pointer-events: none;
 }
-.ss-detail-overlay.show{ display: flex; }
+.ss-detail-overlay.show{ display: flex; pointer-events: auto; }
 
 .ss-detail-card{
   width: min(720px, 100%);
@@ -1106,6 +1107,8 @@ body.group-ui .panel{
     radial-gradient(300px 120px at 10% 0%, rgba(215,178,106,.08), transparent 60%),
     linear-gradient(135deg, rgba(255,255,255,.03), rgba(255,255,255,.01));
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
 .entry-card:hover{
