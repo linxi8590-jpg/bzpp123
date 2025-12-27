@@ -207,6 +207,7 @@
   function openModal(id){
     const overlay = typeof id === 'string' ? qs('#' + id) : id;
     if(!overlay) return;
+    overlay.dataset.openedAt = String(Date.now());
     overlay.classList.add('show');
     overlay.setAttribute('aria-hidden','false');
     document.body.classList.add('modal-open');
@@ -293,11 +294,13 @@
 
     if(!wired){
       // 打开弹窗
-      openWx.addEventListener('click', ()=>{
+      openWx.addEventListener('click', (ev) => {
+        try{ ev.preventDefault(); ev.stopPropagation(); }catch(e){}
         setActiveWuxing(state.wuxing || 'all');
         openModal('hzWuxingModal');
       });
-      openSt.addEventListener('click', ()=>{
+      openSt.addEventListener('click', (ev) => {
+        try{ ev.preventDefault(); ev.stopPropagation(); }catch(e){}
         stInput.value = state.stroke ? String(state.stroke) : '';
         openModal('hzStrokeModal');
         // iOS: 稍后再 focus 更稳
@@ -313,7 +316,10 @@
       });
       [wxModal, stModal].forEach(overlay=>{
         overlay.addEventListener('click', (e)=>{
-          if(e.target === overlay) closeModal(overlay);
+          if(e.target !== overlay) return;
+          const t = Number((overlay.dataset && overlay.dataset.openedAt) ? overlay.dataset.openedAt : 0);
+          if(t && (Date.now() - t) < 380) return; // 防止 iOS 触发“幽灵点击”导致刚打开就关
+          closeModal(overlay);
         });
       });
 
