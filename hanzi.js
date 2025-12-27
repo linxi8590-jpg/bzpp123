@@ -333,7 +333,28 @@
     overlay.dataset.openedAt = String(Date.now());
     overlay.classList.add('show');
     overlay.setAttribute('aria-hidden','false');
-    document.body.classList.add('modal-open');
+
+    // iOS 上给 body 加 overflow:hidden 往往会触发超大重排（列表越长越明显），
+    // 造成“点一下整个手机卡几秒、弹窗没弹出来”的体验。
+    // 这里改为：iOS 不改 body overflow，用 overlay 的 touchmove 拦截来阻止背景滚动。
+    if(!IS_IOS) document.body.classList.add('modal-open');
+
+    // 防止背景滚动（尤其 iOS Safari 会把手势传给 body）
+    if(!overlay.__touchLockWired){
+      try{
+        overlay.addEventListener('touchmove', (e)=>{
+          // 允许弹窗卡片内部“可滚动区域”滚动；
+          // 若卡片本身不可滚动（如五行只有一行按钮），则拦截以免背景跟着滚。
+          const card = (e.target && e.target.closest) ? e.target.closest('.modal-card') : null;
+          if(card){
+            const canScroll = (card.scrollHeight - card.clientHeight) > 2;
+            if(canScroll) return;
+          }
+          try{ e.preventDefault(); }catch(err){}
+        }, { passive: false });
+      }catch(e){}
+      overlay.__touchLockWired = true;
+    }
   }
 
   function closeModal(id){
