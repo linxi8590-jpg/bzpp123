@@ -248,7 +248,8 @@
     state.wuxing = String(w);
     setActiveWuxing(String(w));
     setFilterUI();
-    const arr = idx.byWuxing.get(String(w)) || [];
+    // byWuxing 是普通对象（非 Map），不要用 .get()
+    const arr = (idx.byWuxing && idx.byWuxing[String(w)]) ? idx.byWuxing[String(w)] : [];
     renderList(arr, `五行·${String(w)}`);
   }
 
@@ -269,6 +270,12 @@
     const arr = idx.byStroke.get(st) || [];
     renderList(arr, `笔画·${st}`);
     return true;
+  }
+
+  function normalizeStrokeInput(val){
+    const num = Number(val);
+    if(!Number.isFinite(num) || num < 1) return null;
+    return Math.round(num);
   }
 
   async function setupHanziModule(){
@@ -327,14 +334,22 @@
       wxOpts.addEventListener('click', (e)=>{
         const btn = e.target && e.target.closest ? e.target.closest('button[data-wuxing]') : null;
         if(!btn) return;
-        applyWuxing(btn.dataset.wuxing);
+        const w = btn.dataset.wuxing;
+        // 先关弹窗再渲染，避免移动端大列表渲染时“卡在弹窗里”
         closeModal('hzWuxingModal');
+        setTimeout(()=>{ try{ applyWuxing(w); }catch(err){} }, 0);
       });
 
       // 笔画选择
       const doStrokeAndClose = (val)=>{
-        const ok = applyStroke(val);
-        if(ok) closeModal('hzStrokeModal');
+        const st = normalizeStrokeInput(val);
+        if(!st){
+          toast('请输入正确的笔画数字');
+          return;
+        }
+        // 先关弹窗再渲染，避免渲染卡顿导致“点了没反应”
+        closeModal('hzStrokeModal');
+        setTimeout(()=>{ try{ applyStroke(st); }catch(err){} }, 0);
       };
 
       stBtn.addEventListener('click', ()=> doStrokeAndClose(stInput.value));
