@@ -19,6 +19,20 @@
     }catch(e){ return false; }
   })();
 
+  // 给 CSS 一个稳定的 iOS 钩子（用于修 iPhone 上弹窗显示/卡顿）
+  try{ if(IS_IOS) document.documentElement.classList.add('is-ios'); }catch(e){}
+
+  function safeCharCompare(a, b){
+    const x = String(a || '');
+    const y = String(b || '');
+    // iOS 的 Intl/locale 支持在不同版本差异很大，必须容错
+    try{ return x.localeCompare(y, 'zh-Hans'); }catch(e){}
+    try{ return x.localeCompare(y, 'zh'); }catch(e){}
+    // 最后兜底：按码点
+    if(x === y) return 0;
+    return x < y ? -1 : 1;
+  }
+
   // 统一的“轻触”事件：优先 pointerup（更快），兼容 click（更稳）
   function onTap(el, handler){
     if(!el || typeof handler !== 'function') return;
@@ -117,12 +131,12 @@
       items.push({ ch, wuxing, stroke, mean });
     });
 
-    // 排序：先笔画再字形
+    // 排序：先笔画再字形（iOS 需避免 localeCompare 因 locale 支持差异而直接抛错）
     items.sort((a,b)=>{
       const sa = a.stroke || 999;
       const sb = b.stroke || 999;
       if(sa !== sb) return sa - sb;
-      return a.ch.localeCompare(b.ch, 'zh-Hans');
+      return safeCharCompare(a.ch, b.ch);
     });
 
     const byWuxing = { 金:[], 木:[], 水:[], 火:[], 土:[] };
@@ -136,7 +150,7 @@
       }
     });
 
-    return { items, byWuxing, byStroke };
+    return { items, byWuxing, byStroke, _count: Object.keys(db).length };
   }
 
   
@@ -190,8 +204,10 @@
     const grid = qs('#hzGrid');
     if(!grid) return;
 
-    const frameBudget = IS_IOS ? 6 : 10; // 单帧预算（ms）
-    const hardLimit  = IS_IOS ? 24 : 60; // 防止某些设备 now() 精度异常导致单帧塞太多
+    // iPhone 上列表渲染过密会把交互“挤到后面”，表现为点弹窗/按钮要卡很久
+    // 这里把 iOS 的每帧工作量再压低，让点击能更快被处理
+    const frameBudget = IS_IOS ? 4 : 10; // 单帧预算（ms）
+    const hardLimit  = IS_IOS ? 10 : 60; // 单帧最多塞多少项
 
     const buildItemHtml = (it)=>{
       const mean = it.mean ? it.mean : '（暂无寓意）';
@@ -429,7 +445,16 @@
   async function setupHanziModule(){
     // 每次打开都尽量拉一次补丁，确保查询吃到最新数据
     await ensureDBReady();
-    state.index = buildIndex();
+    // iPhone 上 build+sort 一大坨数据会非常慢。
+    // 这里做一次轻量缓存：字库数量未变化则复用 index。
+    try{
+      const countNow = Object.keys(getMergedDB() || {}).length;
+      if(!state.index || state.index._count !== countNow){
+        state.index = buildIndex();
+      }
+    }catch(e){
+      state.index = buildIndex();
+    }
 
     const openWx = qs('#hzOpenWuxing');
     const openSt = qs('#hzOpenStroke');

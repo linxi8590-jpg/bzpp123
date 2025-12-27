@@ -121,6 +121,7 @@
       cursor: pointer;
       text-align: center;
       user-select: none;
+      touch-action: manipulation;
       transition: filter .12s ease, transform .12s ease, border-color .12s ease, background .12s ease;
     }
     .mode-pill:active{ transform: scale(.98); }
@@ -1456,6 +1457,7 @@ button.small{
   border: 1px solid rgba(255,255,255,.12);
   background: rgba(255,255,255,.04);
   color: inherit;
+  touch-action: manipulation;
 }
 .stroke-chip:active{
   transform: scale(.98);
@@ -1521,6 +1523,7 @@ button.small{
   background: rgba(255,255,255,.03);
   border-radius: 12px;
   padding: 12px;
+  touch-action: manipulation;
 }
 .filter-label{
   font-size: 12px;
@@ -1541,12 +1544,29 @@ button.small{
   position: fixed;
   inset: 0;
   background: rgba(0,0,0,.55);
-display: none;
+  display: flex;
   align-items: flex-end;
   justify-content: center;
   z-index: 1300;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  will-change: opacity;
+  transform: translateZ(0);
+  transition: opacity .12s ease;
 }
-.modal-overlay.show{ display: flex; }
+.modal-overlay.show{
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+/* iPhone: 半透明遮罩 + 动画更容易触发大面积合成，表现为“点一下卡好几秒”。
+   这里直接用不透明遮罩 + 取消淡入，换“立刻出现”，优先保证交互。 */
+html.is-ios .modal-overlay{
+  background: #05060a;
+  transition: none;
+}
 
 .modal-card{
   width: min(720px, 100%);
@@ -1582,6 +1602,16 @@ display: none;
   background: rgba(255,255,255,.03);
   font-size: 22px;
   line-height: 1;
+  touch-action: manipulation;
+}
+
+/* 让 iOS 的点击更“立即”，减少双击缩放/延迟的副作用 */
+.filter-btn,
+.mode-pill,
+.stroke-chip,
+.modal-close,
+.btn{
+  touch-action: manipulation;
 }
 
 body.modal-open{
