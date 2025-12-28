@@ -3498,8 +3498,6 @@ document.addEventListener('DOMContentLoaded', () => {
         fire(e);
       }, { passive: false });
     });
-  });
-    });
   }
 
   
@@ -3522,8 +3520,6 @@ document.addEventListener('DOMContentLoaded', () => {
         try{ if(e && e.cancelable) e.preventDefault(); }catch(_){}
         fire(e);
       }, { passive: false });
-    });
-  });
     });
   }
 
